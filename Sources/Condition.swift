@@ -42,16 +42,10 @@ public class DispatchCondition {
     
     @discardableResult
     public func wait(timeout: DispatchTime) -> Bool {
-        return self.wait(timeout: timeout.timeInterval)
+        return self.wait(ms: timeout.ms)
     }
     
-    @discardableResult
-    public func wait(timeout: TimeInterval) -> Bool {
-        return self.wait(ms: Int(timeout * 1000))
-    }
-    
-    @discardableResult
-    public func wait(ms: Int) -> Bool {
+    private func wait(ms: Int) -> Bool {
         var tv = timeval()
         var ts = timespec()
         gettimeofday(&tv, nil)

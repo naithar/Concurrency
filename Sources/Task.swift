@@ -17,7 +17,6 @@ import Dispatch
 
 public enum TaskError: Swift.Error {
     case negativeCapacity
-    case negativeTimeoutInterval
 }
 
 public class Task<T> {
@@ -76,7 +75,7 @@ extension Task {
 
 extension Task {
     
-    public func send(value: Element) throws {
+    public func send(_ value: Element) throws {
         self.condition.mutex.lock()
         defer {
             self.condition.signal()
@@ -85,7 +84,7 @@ extension Task {
         try self.buffer.append(.value(value))
     }
     
-    public func `throw`(error: Swift.Error) throws {
+    public func `throw`(_ error: Swift.Error) throws {
         self.condition.mutex.lock()
         defer {
             self.condition.signal()
@@ -118,19 +117,10 @@ extension Task {
     
     @discardableResult
     public func receive(timeout: DispatchTime) throws -> Element {
-        let interval = timeout.timeInterval
-        return try self.receive(timeout: interval)
-    }
-    
-    public func receive(timeout: TimeInterval) throws -> Element {
         self.condition.mutex.lock()
         defer {
             self.condition.broadcast()
             self.condition.mutex.unlock()
-        }
-        
-        guard timeout > 0 else {
-            throw Error.negativeTimeoutInterval
         }
         
         self.condition.wait(timeout: timeout)

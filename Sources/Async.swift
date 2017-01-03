@@ -9,23 +9,35 @@
 import Foundation
 import Dispatch
 
-
-@discardableResult
-func async<Element>(on queue: DispatchQueue? = nil,
-           _ closure: @autoclosure (Void) throws -> Element) -> Task<Element> {
-    return Task<Element>()
+extension DispatchQueue {
+    
+    static let asyncQueue = DispatchQueue(
+        label: "swift-async.concurrent.queue",
+        attributes: [.concurrent])
 }
 
 @discardableResult
 func async<Element>(on queue: DispatchQueue? = nil,
-           after timeout: DispatchTime,
-           _ closure: @autoclosure (Void) throws -> Element) -> Task<Element> {
-    return Task<Element>()
-}
-
-@discardableResult
-func async<Element>(on queue: DispatchQueue? = nil,
-           after timeout: TimeInterval,
-           _ closure: @autoclosure (Void) throws -> Element) -> Task<Element> {
-    return Task<Element>()
+           after delay: DispatchTime? = nil,
+           _ closure: @autoclosure @escaping (Void) throws -> Element) -> Task<Element> {
+    let task = Task<Element>()
+    
+    func action() {
+        do {
+            let value = try closure()
+            try? task.send(value)
+        } catch {
+            try? task.throw(error)
+        }
+    }
+    
+    let taskQueue = queue ?? DispatchQueue.asyncQueue
+    
+    if let delay = delay {
+        taskQueue.asyncAfter(deadline: delay, execute: action)
+    } else {
+        taskQueue.async(execute: action)
+    }
+    
+    return task
 }

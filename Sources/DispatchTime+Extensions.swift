@@ -6,24 +6,18 @@
 //
 //
 
-import Foundation
 import Dispatch
 
 
 extension DispatchTime {
     
-    public var timeInterval: TimeInterval {
-        let timeDelta = self.rawValue - DispatchTime.now().rawValue
-        let interval = Double(timeDelta) / Double(NSEC_PER_SEC)
-        return interval
-    }
-}
-
-extension DispatchWallTime {
-    
-    public var timeInterval: TimeInterval {
-        let timeDelta = DispatchWallTime.now().rawValue - self.rawValue
-        let interval = Double(timeDelta) / Double(NSEC_PER_SEC)
-        return interval
+    public var ms: Int {
+        let now = DispatchTime.now()
+        guard self >= now else {
+            return 10
+        }
+        let timeDelta = self.rawValue - now.rawValue
+        let interval = timeDelta / NSEC_PER_MSEC
+        return Int(interval)
     }
 }
