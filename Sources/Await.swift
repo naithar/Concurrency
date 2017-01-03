@@ -7,7 +7,6 @@
 //
 
 import Dispatch
-import Foundation
 
 @discardableResult
 func await<Element>(_ task: @autoclosure (Void) -> Task<Element>) throws -> Element {
