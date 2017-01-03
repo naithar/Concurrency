@@ -42,17 +42,12 @@ public class DispatchCondition {
     
     @discardableResult
     public func wait(timeout: DispatchTime) -> Bool {
-        return self.wait(interval: timeout.timeInterval)
+        return self.wait(timeout: timeout.timeInterval)
     }
     
     @discardableResult
-    public func wait(timeoutWall: DispatchWallTime) -> Bool {
-        return self.wait(interval: timeoutWall.timeInterval)
-    }
-    
-    @discardableResult
-    public func wait(interval: TimeInterval) -> Bool {
-        return self.wait(ms: Int(interval * 1000))
+    public func wait(timeout: TimeInterval) -> Bool {
+        return self.wait(ms: Int(timeout * 1000))
     }
     
     @discardableResult

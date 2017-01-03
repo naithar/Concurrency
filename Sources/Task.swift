@@ -119,27 +119,21 @@ extension Task {
     @discardableResult
     public func receive(timeout: DispatchTime) throws -> Element {
         let interval = timeout.timeInterval
-        return try self.receive(interval: interval)
+        return try self.receive(timeout: interval)
     }
     
-    @discardableResult
-    public func receive(timeoutWall: DispatchWallTime) throws -> Element {
-        let interval = timeoutWall.timeInterval
-        return try self.receive(interval: interval)
-    }
-    
-    private func receive(interval: TimeInterval) throws -> Element {
+    public func receive(timeout: TimeInterval) throws -> Element {
         self.condition.mutex.lock()
         defer {
             self.condition.broadcast()
             self.condition.mutex.unlock()
         }
         
-        guard interval > 0 else {
+        guard timeout > 0 else {
             throw Error.negativeTimeoutInterval
         }
         
-        self.condition.wait(interval: interval)
+        self.condition.wait(timeout: timeout)
         
         return try self.receiveElement()
     }
