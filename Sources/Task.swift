@@ -18,14 +18,20 @@ public enum TaskError: Swift.Error {
     case negativeCapacity
 }
 
+let TaskIDGenerator = IDGenerator(key: "task")
+
 public class Task<T> {
     
+    public typealias ID = IDGenerator.ID
     public typealias Element = T
     public typealias Buffer = TaskBuffer<Element>
     public typealias Error = TaskError
     
     fileprivate var condition = DispatchCondition()
     fileprivate var buffer: Buffer
+//    fileprivate var selectConditions = [DispatchCondition]()
+    
+    public var id: ID = TaskIDGenerator.next()
     
     public var isClosed: Bool {
         get {
@@ -125,5 +131,45 @@ extension Task {
         self.condition.wait(timeout: timeout)
         
         return try self.receiveElement()
+    }
+}
+
+extension Task: Hashable {
+    
+    public var hashValue: Int {
+        return self.id.hashValue
+    }
+    
+    public static func ==(lhs: Task, rhs: Task) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public static func !=(lhs: Task, rhs: Task) -> Bool {
+        return !(lhs == rhs)
+    }
+}
+
+extension Task {
+    
+//    internal func append(condition: DispatchCondition, for select: SelectBuilder.ID) -> Int {
+//        self.selectConditions.append(condition)
+//        return self.selectConditions.count - 1
+//    }
+//    
+//    internal func remove(conditionAt index: Int) {
+//        
+//    }
+    
+    internal func select() -> Buffer.Value? {
+        self.condition.mutex.lock()
+        defer {
+            self.condition.mutex.unlock()
+        }
+        
+        guard let first = try? self.buffer.remove(at: 0) else {
+            return nil
+        }
+        
+        return first
     }
 }

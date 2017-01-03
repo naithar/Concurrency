@@ -30,3 +30,11 @@ public struct Atomic<T> {
         self._value = value
     }
 }
+
+public func ==<Element: Equatable>(left: Atomic<Element>, right: Atomic<Element>) -> Bool {
+    return left.value == right.value
+}
+
+public func !=<Element: Equatable>(left: Atomic<Element>, right: Atomic<Element>) -> Bool {
+    return !(left == right)
+}

@@ -9,7 +9,7 @@ class SwiftAsyncTests: XCTestCase {
         
         let task = Task<Int>()
         
-        DispatchQueue.global().async {
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
             
             let a = try? task.receive()
             
@@ -17,7 +17,7 @@ class SwiftAsyncTests: XCTestCase {
         }
         
         
-        DispatchQueue(label: "aa").asyncAfter(deadline: .now() + 1) {
+        DispatchQueue(label: "aa").asyncAfter(deadline: .now()) {
             try? task.send(10)
         }
         
@@ -30,6 +30,22 @@ class SwiftAsyncTests: XCTestCase {
         let value = try! await(task)
         
         print(value)
+    }
+    
+    func testSelect() {
+        
+        select { when in
+            
+        }
+    }
+    
+    func testWait() {
+        
+        let con = DispatchCondition()
+        
+        con.signal()
+        con.wait()
+        print("a")
     }
 
     static var allTests : [(String, (SwiftAsyncTests) -> () throws -> Void)] {
