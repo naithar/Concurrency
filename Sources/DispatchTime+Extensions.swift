@@ -13,7 +13,7 @@ extension DispatchTime {
     
     public var ms: Int {
         let now = DispatchTime.now()
-        guard self >= now else {
+        guard self > now else {
             return 0
         }
         let timeDelta = self.rawValue - now.rawValue
