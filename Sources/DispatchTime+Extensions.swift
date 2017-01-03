@@ -14,7 +14,7 @@ extension DispatchTime {
     public var ms: Int {
         let now = DispatchTime.now()
         guard self >= now else {
-            return 10
+            return 0
         }
         let timeDelta = self.rawValue - now.rawValue
         let interval = timeDelta / NSEC_PER_MSEC
