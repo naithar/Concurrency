@@ -10,33 +10,36 @@ import Dispatch
 
 extension DispatchQueue {
     
-    static let asyncQueue = DispatchQueue(
+    static let defaultCoroutineQueue = DispatchQueue(
         label: "swift-async.concurrent.queue",
         attributes: [.concurrent])
 }
 
-@discardableResult
-func async<Element>(on queue: DispatchQueue? = nil,
-           after delay: DispatchTime? = nil,
-           _ closure: @autoclosure @escaping (Void) throws -> Element) -> Task<Element> {
-    let task = Task<Element>()
+func coroutine(_ closure: (Void) -> Void) {
+    
+}
+
+func coroutine<Element>(on queue: DispatchQueue? = nil,
+               after delay: DispatchTime? = nil,
+               _ closure: @autoclosure @escaping (Void) throws -> Element) -> Channel<Element> {
+    let channel = Channel<Element>()
     
     func action() {
         do {
             let value = try closure()
-            try? task.send(value)
+            try? channel.send(value)
         } catch {
-            try? task.throw(error)
+            try? channel.throw(error)
         }
     }
-    
-    let taskQueue = queue ?? DispatchQueue.asyncQueue
+
+    let queue = queue ?? DispatchQueue.defaultCoroutineQueue
     
     if let delay = delay {
-        taskQueue.asyncAfter(deadline: delay, execute: action)
+        queue.asyncAfter(deadline: delay, execute: action)
     } else {
-        taskQueue.async(execute: action)
+        queue.async(execute: action)
     }
     
-    return task
+    return channel
 }

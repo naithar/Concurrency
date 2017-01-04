@@ -6,37 +6,50 @@ import Foundation
 class SwiftAsyncTests: XCTestCase {
     
     func testExample() {
-        
-        let task = Task<Int>()
-        
-        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
-            
-            let a = try? task.receive()
-            
-            print(a)
-        }
-        
-        
-        DispatchQueue(label: "aa").asyncAfter(deadline: .now()) {
-            try? task.send(10)
-        }
-        
-        sleep(3)
+//        
+//        let task = Task<Int>()
+//        
+//        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
+//            
+//            let a = try? task.receive()
+//            
+//            print(a)
+//        }
+//        
+//        
+//        DispatchQueue(label: "aa").asyncAfter(deadline: .now()) {
+//            try? task.send(10)
+//        }
+//        
+//        sleep(3)
     }
     
     func testAsync() {
         
-        let task = async(1)
-        let value = try! await(task)
-        
-        print(value)
     }
     
     func testSelect() {
         
-        select { when in
-            
-        }
+//        var a: Int = 0
+//        coroutine {
+//            a = 10
+//            print(a)
+//        }
+//        
+//        let coro = coroutine { Void -> Int in
+//            return 0
+//        }
+        
+        
+//        func foo<T: Receiving>(aa: T) where T.Element == Int {
+//            
+//        }
+//        
+//        foo(aa: Task<Int>())
+//        
+//        select { when in
+//            
+//        }
     }
     
     func testWait() {

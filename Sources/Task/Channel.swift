@@ -1,5 +1,5 @@
 //
-//  Task.swift
+//  Channel.swift
 //  SwiftAsync
 //
 //  Created by Sergey Minakov on 03.01.17.
@@ -20,7 +20,7 @@ public enum TaskError: Swift.Error {
 
 let TaskIDGenerator = IDGenerator(key: "task")
 
-public class Task<T> {
+public class Channel<T> {
     
     public typealias ID = IDGenerator.ID
     public typealias Element = T
@@ -39,7 +39,10 @@ public class Task<T> {
         }
         set {
             self.condition.mutex.lock()
-            defer { self.condition.mutex.unlock() }
+            defer {
+                self.condition.broadcast()
+                self.condition.mutex.unlock()
+            }
             self.buffer.isClosed = newValue
         }
     }
@@ -64,7 +67,7 @@ public class Task<T> {
     }
 }
 
-extension Task {
+extension Channel {
     
     fileprivate func receiveElement() throws -> Element {
         let value = try self.buffer.remove(at: 0)
@@ -78,12 +81,14 @@ extension Task {
     }
 }
 
-extension Task {
+// MARK: Sending
+
+extension Channel: Sending {
     
     public func send(_ value: Element) throws {
         self.condition.mutex.lock()
         defer {
-            self.condition.signal()
+            self.condition.broadcast()
             self.condition.mutex.unlock()
         }
         try self.buffer.append(.value(value))
@@ -92,14 +97,16 @@ extension Task {
     public func `throw`(_ error: Swift.Error) throws {
         self.condition.mutex.lock()
         defer {
-            self.condition.signal()
+            self.condition.broadcast()
             self.condition.mutex.unlock()
         }
         try self.buffer.append(.error(error))
     }
 }
 
-extension Task {
+// MARK: Receiving
+
+extension Channel: Receiving {
     
     @discardableResult
     public func receive() throws -> Element {
@@ -109,16 +116,12 @@ extension Task {
             self.condition.mutex.unlock()
         }
         
-        while self.buffer.first == nil
-            && !self.isClosed {
-                self.condition.wait()
+        while self.buffer.wait() {
+            self.condition.wait()
         }
         
         return try self.receiveElement()
     }
-}
-
-extension Task {
     
     @discardableResult
     public func receive(timeout: DispatchTime) throws -> Element {
@@ -128,48 +131,37 @@ extension Task {
             self.condition.mutex.unlock()
         }
         
-        self.condition.wait(timeout: timeout)
+        if self.buffer.wait() {
+            self.condition.wait(timeout: timeout)
+        }
         
         return try self.receiveElement()
     }
 }
 
-extension Task: Hashable {
-    
-    public var hashValue: Int {
-        return self.id.hashValue
-    }
-    
-    public static func ==(lhs: Task, rhs: Task) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
-    public static func !=(lhs: Task, rhs: Task) -> Bool {
-        return !(lhs == rhs)
-    }
-}
+// MARK: Select
 
-extension Task {
-    
-//    internal func append(condition: DispatchCondition, for select: SelectBuilder.ID) -> Int {
-//        self.selectConditions.append(condition)
-//        return self.selectConditions.count - 1
-//    }
+//extension Task {
 //    
-//    internal func remove(conditionAt index: Int) {
+////    internal func append(condition: DispatchCondition, for select: SelectBuilder.ID) -> Int {
+////        self.selectConditions.append(condition)
+////        return self.selectConditions.count - 1
+////    }
+////    
+////    internal func remove(conditionAt index: Int) {
+////        
+////    }
+//    
+//    internal func select() -> Buffer.Value? {
+//        self.condition.mutex.lock()
+//        defer {
+//            self.condition.mutex.unlock()
+//        }
 //        
+//        guard let first = try? self.buffer.remove(at: 0) else {
+//            return nil
+//        }
+//        
+//        return first
 //    }
-    
-    internal func select() -> Buffer.Value? {
-        self.condition.mutex.lock()
-        defer {
-            self.condition.mutex.unlock()
-        }
-        
-        guard let first = try? self.buffer.remove(at: 0) else {
-            return nil
-        }
-        
-        return first
-    }
-}
+//}

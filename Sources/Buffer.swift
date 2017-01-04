@@ -70,6 +70,10 @@ public struct TaskBuffer<T> {
     public init(capacity: Capacity) {
         self.capacity = capacity
     }
+    
+    public func wait() -> Bool {
+        return self.array.first == nil && !self.isClosed
+    }
 }
 
 extension TaskBuffer {

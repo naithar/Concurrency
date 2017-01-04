@@ -23,13 +23,13 @@ public class SelectCase: Hashable {
     }
 }
 
-public class TaskCase<T>: SelectCase {
+public class ChannelCase<T>: SelectCase {
     
     public typealias Action = (T?, Swift.Error?) -> Void
-    var task: Task<T>
+    var task: Channel<T>
     var action: Action
     
-    init(task: Task<T>, action: @escaping Action) {
+    init(task: Channel<T>, action: @escaping Action) {
         self.task = task
         self.action = action
     }
@@ -42,7 +42,7 @@ public class TaskCase<T>: SelectCase {
         return self.task.hashValue
     }
     
-    public static func ==(lhs: TaskCase, rhs: TaskCase) -> Bool {
+    public static func ==(lhs: ChannelCase, rhs: ChannelCase) -> Bool {
         return lhs.task == rhs.task
     }
 }
@@ -52,11 +52,15 @@ public class SelectSwitch {
     var cases = [SelectCase]()
     var otherwise: ((Void) -> Void)?
     
-    public func receive<Element>(_ task: Task<Element>, action: @escaping TaskCase<Element>.Action) {
-        let `case` = TaskCase(task: task, action: action)
+    public func receive<Element>(_ task: Channel<Element>, action: @escaping ChannelCase<Element>.Action) {
+        let `case` = ChannelCase(task: task, action: action)
         if !self.cases.contains(`case`) {
             self.cases.append(`case`)
         }
+    }
+    
+    public func timeout() {
+        
     }
     
     public func otherwise(action: @escaping (Void) -> Void) {

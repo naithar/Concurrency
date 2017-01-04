@@ -22,7 +22,11 @@ public class IDGenerator {
         self.mutex.lock()
         defer { self.mutex.unlock() }
         let id = "\(self.key)-\(self.index)"
-        self.index += 1
+        if self.index == Int.max {
+            self.index = 0
+        } else {
+            self.index += 1
+        }
         return id
     }
 }
