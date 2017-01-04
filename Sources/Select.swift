@@ -12,8 +12,15 @@ public func select(_ action: (SelectSwitch) -> Void) {
     builder.wait()
 }
 
-protocol SelectCase {
+public class SelectCase: Hashable {
     
+    public var hashValue: Int {
+        return 0
+    }
+    
+    public static func ==(lhs: SelectCase, rhs: SelectCase) -> Bool {
+        return false
+    }
 }
 
 public class TaskCase<T>: SelectCase {
@@ -27,8 +34,16 @@ public class TaskCase<T>: SelectCase {
         self.action = action
     }
     
-    func execute() {
-//        self.action()
+    func execute() -> Bool {
+        return false
+    }
+    
+    public override var hashValue: Int {
+        return self.task.hashValue
+    }
+    
+    public static func ==(lhs: TaskCase, rhs: TaskCase) -> Bool {
+        return lhs.task == rhs.task
     }
 }
 
@@ -38,7 +53,10 @@ public class SelectSwitch {
     var otherwise: ((Void) -> Void)?
     
     public func receive<Element>(_ task: Task<Element>, action: @escaping TaskCase<Element>.Action) {
-        
+        let `case` = TaskCase(task: task, action: action)
+        if !self.cases.contains(`case`) {
+            self.cases.append(`case`)
+        }
     }
     
     public func otherwise(action: @escaping (Void) -> Void) {
