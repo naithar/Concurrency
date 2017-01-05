@@ -22,7 +22,7 @@ public enum TaskValueError: Swift.Error {
 let TaskValueIDGenerator = IDGenerator(key: "task-value")
 
 
-public class TaskValue<T> {
+public class TaskValue<T>: TaskProtocol {
     
     public typealias ID = IDGenerator.ID
     public typealias Element = T
@@ -33,6 +33,10 @@ public class TaskValue<T> {
     fileprivate var value: TaskBufferValue<Element>?
     
     public var id: ID = TaskValueIDGenerator.next()
+    
+    public init() {
+        
+    }
     
     public init(_ builder: (TaskValue<T>) throws -> Void) {
         

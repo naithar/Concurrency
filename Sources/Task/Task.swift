@@ -19,8 +19,12 @@ public enum E: Swift.Error {
 
 public struct SendableTask<T: Sendable>: Sendable {
     
-    public typealias Task = T
+    public typealias Container = T
     public typealias Element = T.Element
+    
+    init() {
+        
+    }
     
     public func send(_ value: Element) throws {
         
@@ -34,9 +38,12 @@ public struct SendableTask<T: Sendable>: Sendable {
 
 public struct WaitableTask<T: Waitable>: Waitable {
     
-    public typealias Task = T
+    public typealias Container = T
     public typealias Element = T.Element
     
+    init() {
+        
+    }
     @discardableResult
     public func wait() throws -> Element {
         throw E.unknown
@@ -50,6 +57,9 @@ public struct WaitableTask<T: Waitable>: Waitable {
 
 public struct Task<T> {
     
-    public typealias Waitable = WaitableTask<Channel<T>>
-    public typealias Sendable = WaitableTask<Channel<T>>
+    public typealias Sendable<C: TaskProtocol> = SendableTask<C> where C.Element == T
+    public typealias Waitable<C: TaskProtocol> = WaitableTask<C> where C.Element == T
+    
+    public typealias Value = TaskValue<T>
+    //public typealias Buffer = TaskBuffer<T>
 }
