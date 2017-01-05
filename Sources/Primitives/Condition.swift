@@ -53,6 +53,7 @@ public class DispatchCondition {
         ts.tv_nsec = Int(tv.tv_usec * 1000 + tmp)
         ts.tv_sec += ts.tv_nsec / 1000000000
         ts.tv_nsec %= 1000000000
+        
         return pthread_cond_timedwait(&self.condition, &self.mutex.mutex, &ts) == 0
     }
     

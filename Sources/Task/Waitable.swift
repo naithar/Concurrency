@@ -8,13 +8,13 @@
 
 import Dispatch
 
-public protocol Receiving {
+public protocol Waitable {
     
     associatedtype Element
     
     @discardableResult
-    func receive() throws -> Element
+    func wait() throws -> Element
     
     @discardableResult
-    func receive(timeout: DispatchTime) throws -> Element
+    func wait(timeout: DispatchTime) throws -> Element
 }

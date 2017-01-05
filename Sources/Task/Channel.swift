@@ -18,7 +18,8 @@ public enum TaskError: Swift.Error {
     case negativeCapacity
 }
 
-let TaskIDGenerator = IDGenerator(key: "task")
+let TaskValueIDGenerator = IDGenerator(key: "task")
+
 
 public class Channel<T> {
     
@@ -31,7 +32,7 @@ public class Channel<T> {
     fileprivate var buffer: Buffer
 //    fileprivate var selectConditions = [DispatchCondition]()
     
-    public var id: ID = TaskIDGenerator.next()
+    public var id: ID = TaskValueIDGenerator.next()
     
     public var isClosed: Bool {
         get {
@@ -81,9 +82,9 @@ extension Channel {
     }
 }
 
-// MARK: Sending
+// MARK: Sendable
 
-extension Channel: Sending {
+extension Channel: Sendable {
     
     public func send(_ value: Element) throws {
         self.condition.mutex.lock()
@@ -104,12 +105,12 @@ extension Channel: Sending {
     }
 }
 
-// MARK: Receiving
+// MARK: Waitable
 
-extension Channel: Receiving {
+extension Channel: Waitable {
     
     @discardableResult
-    public func receive() throws -> Element {
+    public func wait() throws -> Element {
         self.condition.mutex.lock()
         defer {
             self.condition.broadcast()
@@ -124,7 +125,7 @@ extension Channel: Receiving {
     }
     
     @discardableResult
-    public func receive(timeout: DispatchTime) throws -> Element {
+    public func wait(timeout: DispatchTime) throws -> Element {
         self.condition.mutex.lock()
         defer {
             self.condition.broadcast()
@@ -138,30 +139,3 @@ extension Channel: Receiving {
         return try self.receiveElement()
     }
 }
-
-// MARK: Select
-
-//extension Task {
-//    
-////    internal func append(condition: DispatchCondition, for select: SelectBuilder.ID) -> Int {
-////        self.selectConditions.append(condition)
-////        return self.selectConditions.count - 1
-////    }
-////    
-////    internal func remove(conditionAt index: Int) {
-////        
-////    }
-//    
-//    internal func select() -> Buffer.Value? {
-//        self.condition.mutex.lock()
-//        defer {
-//            self.condition.mutex.unlock()
-//        }
-//        
-//        guard let first = try? self.buffer.remove(at: 0) else {
-//            return nil
-//        }
-//        
-//        return first
-//    }
-//}
