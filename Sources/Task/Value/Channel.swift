@@ -18,7 +18,7 @@ public enum TaskError: Swift.Error {
     case negativeCapacity
 }
 
-let TaskValueIDGenerator = IDGenerator(key: "task")
+let TaskBufferIDGenerator = IDGenerator(key: "task-buffer")
 
 
 public class Channel<T> {
@@ -32,7 +32,7 @@ public class Channel<T> {
     fileprivate var buffer: Buffer
 //    fileprivate var selectConditions = [DispatchCondition]()
     
-    public var id: ID = TaskValueIDGenerator.next()
+    public var id: ID = TaskBufferIDGenerator.next()
     
     public var isClosed: Bool {
         get {
