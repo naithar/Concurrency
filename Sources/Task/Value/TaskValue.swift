@@ -6,12 +6,6 @@
 //
 //
 
-#if os(Linux)
-    import Glibc
-#else
-    import Darwin
-#endif
-
 import Dispatch
 
 public enum TaskValueError: Swift.Error {
@@ -22,27 +16,26 @@ public enum TaskValueError: Swift.Error {
 let TaskValueIDGenerator = IDGenerator(key: "task-value")
 
 
-public class TaskValue<T>: TaskProtocol {
+public final class TaskValue<T>: TaskProtocol {
     
     public typealias ID = IDGenerator.ID
     public typealias Element = T
+    public typealias Value = TaskElement<Element>
     public typealias Error = TaskValueError
     
     fileprivate var condition = DispatchCondition()
     
-    fileprivate var value: TaskBufferValue<Element>?
+    fileprivate var value: Value?
     
     public var id: ID = TaskValueIDGenerator.next()
     
-    public init() {
+    public init() { }
+    
+    public required init(_ builder: (TaskValue<Element>) throws -> Void) {
         
     }
     
-    public init(_ builder: (TaskValue<T>) throws -> Void) {
-        
-    }
-    
-    public init(_ closure: (Void) throws -> Element) {
+    public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
         
     }
 //    

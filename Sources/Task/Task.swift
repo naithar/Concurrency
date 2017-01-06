@@ -11,10 +11,9 @@ import Dispatch
 public protocol TaskProtocol: Sendable, Waitable {
     
     associatedtype Element
-}
-
-public enum E: Swift.Error {
-    case unknown
+    
+    init(_ builder: (Self) throws -> Void)
+    init(_ closure: @autoclosure @escaping (Void) throws -> Element)
 }
 
 public struct SendableTask<T: Sendable>: Sendable {
@@ -22,16 +21,18 @@ public struct SendableTask<T: Sendable>: Sendable {
     public typealias Container = T
     public typealias Element = T.Element
     
-    init() {
-        
+    private var container: Container
+    
+    init(container: Container) {
+        self.container = container
     }
     
     public func send(_ value: Element) throws {
-        
+        try self.container.send(value)
     }
     
     public func `throw`(_ error: Swift.Error) throws {
-        
+        try self.container.throw(error)
     }
 
 }
@@ -41,18 +42,26 @@ public struct WaitableTask<T: Waitable>: Waitable {
     public typealias Container = T
     public typealias Element = T.Element
     
-    init() {
-        
-    }
-    @discardableResult
-    public func wait() throws -> Element {
-        throw E.unknown
+    private var container: Container
+    
+    init(container: Container) {
+        self.container = container
     }
     
     @discardableResult
-    public func wait(timeout: DispatchTime) throws -> Element {
-        throw E.unknown
+    public func wait() throws -> Element {
+        return try self.container.wait()
     }
+
+    @discardableResult
+    public func wait(timeout: DispatchTime) throws -> Element {
+        return try self.container.wait(timeout: timeout)
+    }
+}
+
+public enum TaskElement<Element> {
+    case value(Element)
+    case error(Swift.Error)
 }
 
 public struct Task<T> {
@@ -61,5 +70,5 @@ public struct Task<T> {
     public typealias Waitable<C: TaskProtocol> = WaitableTask<C> where C.Element == T
     
     public typealias Value = TaskValue<T>
-    //public typealias Buffer = TaskBuffer<T>
+    public typealias Buffer = TaskBuffer<T>
 }

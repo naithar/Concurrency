@@ -6,17 +6,17 @@
 //
 //
 
-extension Channel: Hashable {
-    
-    public var hashValue: Int {
-        return self.id.hashValue
-    }
-    
-    public static func ==(lhs: Channel, rhs: Channel) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
-    public static func !=(lhs: Channel, rhs: Channel) -> Bool {
-        return !(lhs == rhs)
-    }
-}
+//extension Channel: Hashable {
+//    
+//    public var hashValue: Int {
+//        return self.id.hashValue
+//    }
+//    
+//    public static func ==(lhs: Channel, rhs: Channel) -> Bool {
+//        return lhs.id == rhs.id
+//    }
+//    
+//    public static func !=(lhs: Channel, rhs: Channel) -> Bool {
+//        return !(lhs == rhs)
+//    }
+//}
