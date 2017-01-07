@@ -12,11 +12,11 @@ public protocol TaskProtocol: Sendable, Waitable {
     
     associatedtype Element
     
-    init(_ builder: (Self) throws -> Void)
+    init(_ builder: (Task<Element>.Sendable<Self>) throws -> Void)
     init(_ closure: @autoclosure @escaping (Void) throws -> Element)
 }
 
-public struct SendableTask<T: Sendable>: Sendable {
+public class SendableTask<T: Sendable>: Sendable {
     
     public typealias Container = T
     public typealias Element = T.Element
@@ -37,7 +37,7 @@ public struct SendableTask<T: Sendable>: Sendable {
 
 }
 
-public struct WaitableTask<T: Waitable>: Waitable {
+public class WaitableTask<T: Waitable>: Waitable {
     
     public typealias Container = T
     public typealias Element = T.Element

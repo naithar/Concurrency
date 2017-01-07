@@ -54,30 +54,26 @@ public final class TaskBuffer<T>: TaskProtocol {
     
     public init() { }
     
-    public required init(_ builder: (TaskBuffer<Element>) throws -> Void) {
+    public required init(_ builder: (Task<Element>.Sendable<TaskBuffer>) throws -> Void) {
         
     }
     
     public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
         
     }
-//        self.init(capacity: .infinite)
-//    }
-//    
-//    public init(capacity: Capacity) {
-//        self.capacity = capacity
-//    }
-//    
-//    public func wait() -> Bool {
-//        return self.array.first == nil && !self.isClosed
-//    }
 }
 
 extension TaskBuffer {
     
+    fileprivate func shouldWait() -> Bool {
+        return self.first == nil && !self.isClosed
+    }
+    
     fileprivate func receiveElement() throws -> Element {
         throw Error.closed
     }
+    
+    
     //    public mutating func append(_ value: Value) throws {
     //        guard !self.isClosed else {
     //            throw Error.closed
@@ -116,10 +112,23 @@ extension TaskBuffer {
 extension TaskBuffer: Sendable {
     
     public func send(_ value: T) throws {
+        self.condition.mutex.lock()
+        defer {
+            self.condition.broadcast()
+            self.condition.mutex.unlock()
+        }
         
+        self.array.append(.value(value))
     }
 
     public func `throw`(_ error: Swift.Error) throws {
+        self.condition.mutex.lock()
+        defer {
+            self.condition.broadcast()
+            self.condition.mutex.unlock()
+        }
+        
+        self.array.append(.error(error))
     }
     
 }
@@ -127,10 +136,6 @@ extension TaskBuffer: Sendable {
 // MARK: Waitable
 
 extension TaskBuffer: Waitable {
-    
-    private func shouldWait() -> Bool {
-        return self.first == nil && !self.isClosed
-    }
     
     @discardableResult
     public func wait() throws -> Element {

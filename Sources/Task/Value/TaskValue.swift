@@ -29,48 +29,23 @@ public final class TaskValue<T>: TaskProtocol {
     
     public var id: ID = TaskValueIDGenerator.next()
     
+    public var isEmpty: Bool {
+        get {
+            return self.value == nil
+        }
+    }
+    
     public init() { }
     
-    public required init(_ builder: (TaskValue<Element>) throws -> Void) {
+    public required init(_ builder: (Task<Element>.Sendable<TaskValue>) throws -> Void) {
         
     }
     
     public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
         
     }
-//    
-//    public var isClosed: Bool {
-//        get {
-//            return self.buffer.isClosed
-//        }
-//        set {
-//            self.condition.mutex.lock()
-//            defer {
-//                self.condition.broadcast()
-//                self.condition.mutex.unlock()
-//            }
-//            self.buffer.isClosed = newValue
-//        }
-//    }
     
-//    public convenience init(_ value: Element) {
-//        self.value =
-//    }
     
-//    public init(values: [Element]) {
-//        self.buffer = Buffer()
-//        _ = try? self.buffer.append(values: values.map { Buffer.Value.value($0) })
-//    }
-//    
-//    public convenience init(capacity: Int, value: Element...) throws {
-//        try self.init(capacity: capacity, values: value)
-//    }
-//    
-//    public init(capacity: Int, values: [Element]) throws {
-//        guard capacity > 0 else { throw Error.negativeCapacity }
-//        self.buffer = Buffer(capacity: .size(capacity))
-//        try self.buffer.append(values: values.map { Buffer.Value.value($0) })
-//    }
 }
 
 extension TaskValue {
