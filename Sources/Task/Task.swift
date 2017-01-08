@@ -64,11 +64,13 @@ public enum TaskElement<Element> {
     case error(Swift.Error)
 }
 
-public struct Task<T> {
+public enum Task<T> {
     
     public typealias Sendable<C: TaskProtocol> = SendableTask<C> where C.Element == T
     public typealias Waitable<C: TaskProtocol> = WaitableTask<C> where C.Element == T
     
     public typealias Value = TaskValue<T>
     public typealias Buffer = TaskBuffer<T>
+    
+    public typealias Element = TaskElement<T>
 }

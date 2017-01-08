@@ -19,7 +19,7 @@ public final class TaskBuffer<T>: TaskProtocol {
     
     public typealias ID = IDGenerator.ID
     public typealias Element = T
-    public typealias Value = TaskElement<Element>
+    public typealias Value = Task<Element>.Element
     public typealias Error = TaskBufferError
     
     fileprivate var condition = DispatchCondition()
@@ -70,7 +70,18 @@ extension TaskBuffer {
     }
     
     fileprivate func receiveElement() throws -> Element {
-        throw Error.closed
+        guard self.array.count > 0 else {
+            throw Error.empty
+        }
+        
+        let value = self.array.remove(at: 0)
+        
+        switch value {
+        case .value(let element):
+            return element
+        case .error(let error):
+            throw error
+        }
     }
     
     

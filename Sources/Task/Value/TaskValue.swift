@@ -20,7 +20,7 @@ public final class TaskValue<T>: TaskProtocol {
     
     public typealias ID = IDGenerator.ID
     public typealias Element = T
-    public typealias Value = TaskElement<Element>
+    public typealias Value = Task<Element>.Element
     public typealias Error = TaskValueError
     
     fileprivate var condition = DispatchCondition()
@@ -38,7 +38,6 @@ public final class TaskValue<T>: TaskProtocol {
     public init() { }
     
     public required init(_ builder: (Task<Element>.Sendable<TaskValue>) throws -> Void) {
-        
     }
     
     public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
