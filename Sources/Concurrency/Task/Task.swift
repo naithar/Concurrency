@@ -43,7 +43,7 @@ public enum Task {
         
     }
     
-    public class Waitable<T: Waitable>: Waitable {
+    public class Waitable<T: WaitableProtocol>: WaitableProtocol {
         
         public typealias Container = T
         public typealias Element = T.Element
