@@ -16,38 +16,41 @@ public enum TaskValueError: Swift.Error {
 let TaskValueIDGenerator = IDGenerator(key: "task-value")
 
 
-public final class TaskValue<T>: TaskProtocol {
+extension Task {
     
-    public typealias ID = IDGenerator.ID
-    public typealias Element = T
-    public typealias Value = Task<Element>.Element
-    public typealias Error = TaskValueError
-    
-    fileprivate var condition = DispatchCondition()
-    
-    fileprivate var value: Value?
-    
-    public var id: ID = TaskValueIDGenerator.next()
-    
-    public var isEmpty: Bool {
-        get {
-            return self.value == nil
+    public final class Value<T>: TaskProtocol {
+        
+        public typealias ID = IDGenerator.ID
+        public typealias Element = T
+        public typealias Value = Task.Element<Element>
+        public typealias Error = TaskValueError
+        
+        fileprivate var condition = DispatchCondition()
+        
+        fileprivate var value: Value?
+        
+        public var id: ID = TaskValueIDGenerator.next()
+        
+        public var isEmpty: Bool {
+            get {
+                return self.value == nil
+            }
         }
-    }
-    
-    public init() { }
-    
-    public required init(_ builder: (Task<Element>.Sendable<TaskValue>) throws -> Void) {
-    }
-    
-    public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
+        
+        public init() { }
+        
+        public required init(_ builder: (Task.Sendable<Task.Value>) throws -> Void) {
+        }
+        
+        public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
+            
+        }
+        
         
     }
-    
-    
 }
 
-extension TaskValue {
+extension Task.Value {
     
     fileprivate func receiveElement() throws -> Element {
         guard let value = self.value else {
@@ -65,7 +68,7 @@ extension TaskValue {
 
 // MARK: Sendable
 
-extension TaskValue: Sendable {
+extension Task.Value: SendableProtocol {
     
     public func send(_ value: Element) throws {
         self.condition.mutex.lock()
@@ -98,7 +101,7 @@ extension TaskValue: Sendable {
 
 // MARK: Waitable
 
-extension TaskValue: Waitable {
+extension Task.Value: WaitableProtocol {
     
     @discardableResult
     public func wait() throws -> Element {
@@ -130,3 +133,19 @@ extension TaskValue: Waitable {
         return try self.receiveElement()
     }
 }
+
+extension Task.Value: Hashable {
+    
+    public var hashValue: Int {
+        return self.id.hashValue
+    }
+    
+    public static func ==(lhs: Task.Value, rhs: Task.Value) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public static func !=(lhs: Task.Value, rhs: Task.Value) -> Bool {
+        return !(lhs == rhs)
+    }
+}
+

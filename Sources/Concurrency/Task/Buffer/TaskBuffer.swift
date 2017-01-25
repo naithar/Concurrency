@@ -15,55 +15,57 @@ public enum TaskBufferError: Swift.Error {
     case empty
 }
 
-public final class TaskBuffer<T>: TaskProtocol {
-    
-    public typealias ID = IDGenerator.ID
-    public typealias Element = T
-    public typealias Value = Task<Element>.Element
-    public typealias Error = TaskBufferError
-    
-    fileprivate var condition = DispatchCondition()
-    
-    fileprivate var array = [Value]()
-    
-    public var id: ID = TaskBufferIDGenerator.next()
-    
-    public var count: Int {
-        return self.array.count
-    }
-    
-    public var first: Value? {
+extension Task {
+    public final class Buffer<T>: TaskProtocol {
         
-        return self.array.first
-    }
-    
-    public var last: Value? {
-        return self.array.last
-    }
-    
-    private var _closed = false
-    public var isClosed: Bool {
-        set {
-            guard !self._closed else { return }
-            self._closed = newValue
+        public typealias ID = IDGenerator.ID
+        public typealias Element = T
+        public typealias Value = Task.Element<Element>
+        public typealias Error = TaskBufferError
+        
+        fileprivate var condition = DispatchCondition()
+        
+        fileprivate var array = [Value]()
+        
+        public var id: ID = TaskBufferIDGenerator.next()
+        
+        public var count: Int {
+            return self.array.count
         }
-        get {
-            return self._closed
+        
+        public var first: Value? {
+            
+            return self.array.first
         }
-    }
-    
-    public init() { }
-    
-    public required init(_ builder: (Task<Element>.Sendable<TaskBuffer>) throws -> Void) {
         
-    }
-    
-    public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
+        public var last: Value? {
+            return self.array.last
+        }
         
+        private var _closed = false
+        public var isClosed: Bool {
+            set {
+                guard !self._closed else { return }
+                self._closed = newValue
+            }
+            get {
+                return self._closed
+            }
+        }
+        
+        public init() { }
+        
+        public required init(_ builder: (Task.Sendable<Buffer>) throws -> Void) {
+            
+        }
+        
+        public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
+            
+        }
     }
 }
 
-extension TaskBuffer {
+extension Task.Buffer {
     
     fileprivate func shouldWait() -> Bool {
         return self.first == nil && !self.isClosed
@@ -120,7 +122,8 @@ extension TaskBuffer {
 
 // MARK: Sendable
 
-extension TaskBuffer: Sendable {
+
+extension Task.Buffer: SendableProtocol {
     
     public func send(_ value: T) throws {
         self.condition.mutex.lock()
@@ -146,7 +149,7 @@ extension TaskBuffer: Sendable {
 
 // MARK: Waitable
 
-extension TaskBuffer: Waitable {
+extension Task.Buffer: WaitableProtocol {
     
     @discardableResult
     public func wait() throws -> Element {
@@ -176,5 +179,21 @@ extension TaskBuffer: Waitable {
         }
         
         return try self.receiveElement()
+    }
+}
+
+
+extension Task.Buffer: Hashable {
+    
+    public var hashValue: Int {
+        return self.id.hashValue
+    }
+    
+    public static func ==(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public static func !=(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
+        return !(lhs == rhs)
     }
 }
