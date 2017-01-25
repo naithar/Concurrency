@@ -183,17 +183,17 @@ extension Task.Buffer: WaitableProtocol {
 }
 
 
-extension Task.Buffer: Hashable {
-    
-    public var hashValue: Int {
-        return self.id.hashValue
-    }
-    
-    public static func ==(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
-    public static func !=(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
-        return !(lhs == rhs)
-    }
-}
+//extension Task.Buffer: Hashable {
+//    
+//    public var hashValue: Int {
+//        return self.id.hashValue
+//    }
+//    
+//    public static func ==(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
+//        return lhs.id == rhs.id
+//    }
+//    
+//    public static func !=(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
+//        return !(lhs == rhs)
+//    }
+//}

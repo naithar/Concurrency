@@ -134,18 +134,18 @@ extension Task.Value: WaitableProtocol {
     }
 }
 
-extension Task.Value: Hashable {
-    
-    public var hashValue: Int {
-        return self.id.hashValue
-    }
-    
-    public static func ==(lhs: Task.Value, rhs: Task.Value) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
-    public static func !=(lhs: Task.Value, rhs: Task.Value) -> Bool {
-        return !(lhs == rhs)
-    }
-}
+//extension Task.Value: Hashable {
+//    
+//    public var hashValue: Int {
+//        return self.id.hashValue
+//    }
+//    
+//    public static func ==(lhs: Task.Value, rhs: Task.Value) -> Bool {
+//        return lhs.id == rhs.id
+//    }
+//    
+//    public static func !=(lhs: Task.Value, rhs: Task.Value) -> Bool {
+//        return !(lhs == rhs)
+//    }
+//}
 
