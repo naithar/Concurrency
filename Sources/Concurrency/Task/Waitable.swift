@@ -8,7 +8,7 @@
 
 import Dispatch
 
-public protocol WaitableProtocol {
+public protocol Waitable {
     
     associatedtype Element
     

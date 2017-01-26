@@ -39,7 +39,7 @@ extension Task {
         
         public init() { }
         
-        public required init(_ builder: (Task.Sendable<Task.Value>) throws -> Void) {
+        public required init(_ builder: (Task.Sending<Task.Value>) throws -> Void) {
         }
         
         public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
@@ -68,7 +68,7 @@ extension Task.Value {
 
 // MARK: Sendable
 
-extension Task.Value: SendableProtocol {
+extension Task.Value: Sendable {
     
     public func send(_ value: Element) throws {
         self.condition.mutex.lock()
@@ -101,7 +101,7 @@ extension Task.Value: SendableProtocol {
 
 // MARK: Waitable
 
-extension Task.Value: WaitableProtocol {
+extension Task.Value: Waitable {
     
     @discardableResult
     public func wait() throws -> Element {
@@ -134,18 +134,18 @@ extension Task.Value: WaitableProtocol {
     }
 }
 
-//extension Task.Value: Hashable {
-//    
-//    public var hashValue: Int {
-//        return self.id.hashValue
-//    }
-//    
-//    public static func ==(lhs: Task.Value, rhs: Task.Value) -> Bool {
-//        return lhs.id == rhs.id
-//    }
-//    
-//    public static func !=(lhs: Task.Value, rhs: Task.Value) -> Bool {
-//        return !(lhs == rhs)
-//    }
-//}
+extension Task.Value: Hashable {
+    
+    public var hashValue: Int {
+        return self.id.hashValue
+    }
+    
+    public static func ==<T>(lhs: Task.Value<T>, rhs: Task.Value<T>) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public static func !=<T>(lhs: Task.Value<T>, rhs: Task.Value<T>) -> Bool {
+        return !(lhs == rhs)
+    }
+}
 

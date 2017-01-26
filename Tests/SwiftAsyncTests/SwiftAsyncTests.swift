@@ -1,5 +1,5 @@
 import XCTest
-@testable import SwiftAsync
+@testable import Concurrency
 
 import Foundation
 

@@ -6,7 +6,7 @@
 //
 //
 
-public protocol SendableProtocol {
+public protocol Sendable {
     
     associatedtype Element
     

@@ -6,23 +6,19 @@
 //
 //
 
-import Dispatch
+@_exported import Dispatch
 
-public protocol TaskProtocol: SendableProtocol, WaitableProtocol {
+public protocol TaskProtocol: Sendable, Waitable {
     
     associatedtype Element
     
-    init(_ builder: (Task.Sendable<Self>) throws -> Void)
+    init(_ builder: (Task.Sending<Self>) throws -> Void)
     init(_ closure: @autoclosure @escaping (Void) throws -> Element)
 }
 
-
-
-
-
 public enum Task {
     
-    public class Sendable<T: SendableProtocol>: SendableProtocol {
+    public class Sending<T: Sendable>: Sendable {
         
         public typealias Container = T
         public typealias Element = T.Element
@@ -43,7 +39,7 @@ public enum Task {
         
     }
     
-    public class Waitable<T: WaitableProtocol>: WaitableProtocol {
+    public class Waiting<T: Waitable>: Waitable {
         
         public typealias Container = T
         public typealias Element = T.Element
@@ -64,12 +60,6 @@ public enum Task {
             return try self.container.wait(timeout: timeout)
         }
     }
-    
-    //public typealias Sendable<C: TaskProtocol> = SendableTask<C> where C.Element == T
-    //public typealias Waitable<C: TaskProtocol> = WaitableTask<C> where C.Element == T
-    
-    //public typealias Value = TaskValue<T>
-    //public typealias Buffer = TaskBuffer<T>
     
     public enum Element<Element> {
         case value(Element)

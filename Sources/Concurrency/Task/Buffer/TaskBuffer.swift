@@ -55,7 +55,7 @@ extension Task {
         
         public init() { }
         
-        public required init(_ builder: (Task.Sendable<Buffer>) throws -> Void) {
+        public required init(_ builder: (Task.Sending<Buffer>) throws -> Void) {
             
         }
         
@@ -123,7 +123,7 @@ extension Task.Buffer {
 // MARK: Sendable
 
 
-extension Task.Buffer: SendableProtocol {
+extension Task.Buffer: Sendable {
     
     public func send(_ value: T) throws {
         self.condition.mutex.lock()
@@ -149,7 +149,7 @@ extension Task.Buffer: SendableProtocol {
 
 // MARK: Waitable
 
-extension Task.Buffer: WaitableProtocol {
+extension Task.Buffer: Waitable {
     
     @discardableResult
     public func wait() throws -> Element {
@@ -183,17 +183,17 @@ extension Task.Buffer: WaitableProtocol {
 }
 
 
-//extension Task.Buffer: Hashable {
-//    
-//    public var hashValue: Int {
-//        return self.id.hashValue
-//    }
-//    
-//    public static func ==(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
-//        return lhs.id == rhs.id
-//    }
-//    
-//    public static func !=(lhs: Task.Buffer, rhs: Task.Buffer) -> Bool {
-//        return !(lhs == rhs)
-//    }
-//}
+extension Task.Buffer: Hashable {
+    
+    public var hashValue: Int {
+        return self.id.hashValue
+    }
+    
+    public static func ==<T>(lhs: Task.Buffer<T>, rhs: Task.Buffer<T>) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public static func !=<T>(lhs: Task.Buffer<T>, rhs: Task.Buffer<T>) -> Bool {
+        return !(lhs == rhs)
+    }
+}
