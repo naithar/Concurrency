@@ -182,6 +182,7 @@ extension Task.Buffer: Waitable {
     }
 }
 
+// MARK: Hashable
 
 extension Task.Buffer: Hashable {
     

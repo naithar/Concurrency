@@ -134,6 +134,8 @@ extension Task.Value: Waitable {
     }
 }
 
+// MARK: Hashable
+
 extension Task.Value: Hashable {
     
     public var hashValue: Int {
@@ -148,4 +150,3 @@ extension Task.Value: Hashable {
         return !(lhs == rhs)
     }
 }
-
