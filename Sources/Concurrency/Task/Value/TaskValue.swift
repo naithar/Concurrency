@@ -8,10 +8,7 @@
 
 import Dispatch
 
-public enum TaskValueError: Swift.Error {
-    case notEmpty
-    case empty
-}
+
 
 let TaskValueIDGenerator = IDGenerator(key: "task-value")
 
@@ -20,10 +17,14 @@ extension Task {
     
     public final class Value<T>: TaskProtocol {
         
+        public enum Error: Swift.Error {
+            case notEmpty
+            case empty
+        }
+        
         public typealias ID = IDGenerator.ID
         public typealias Element = T
         public typealias Value = Task.Element<Element>
-        public typealias Error = TaskValueError
         
         public fileprivate(set) var isFinished = false
         
@@ -41,7 +42,7 @@ extension Task {
         
         public init() { }
         
-        public required init(_ builder: (Task.Sending<Task.Value>) throws -> Void) {
+        public required init(_ builder: (Task.Sending<Task.Value<T>>) throws -> Void) {
         }
         
         public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {

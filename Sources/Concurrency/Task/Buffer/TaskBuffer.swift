@@ -10,18 +10,19 @@ import Dispatch
 
 let TaskBufferIDGenerator = IDGenerator(key: "task-buffer")
 
-public enum TaskBufferError: Swift.Error {
-    case closed
-    case empty
-}
+
 
 extension Task {
     public final class Buffer<T>: TaskProtocol {
         
+        public enum Error: Swift.Error {
+            case closed
+            case empty
+        }
+        
         public typealias ID = IDGenerator.ID
         public typealias Element = T
         public typealias Value = Task.Element<Element>
-        public typealias Error = TaskBufferError
         
         fileprivate var condition = DispatchCondition()
         
@@ -54,7 +55,7 @@ extension Task {
         
         public init() { }
         
-        public required init(_ builder: (Task.Sending<Buffer>) throws -> Void) {
+        public required init(_ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) {
             
         }
         
