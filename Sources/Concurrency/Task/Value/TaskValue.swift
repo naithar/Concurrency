@@ -40,9 +40,15 @@ extension Task {
             }
         }
         
+        public lazy var sending: Task.Sending<Task.Value<T>> = Task.Sending(container: self)
+        public lazy var waiting: Task.Waiting<Task.Value<T>> = Task.Waiting(container: self)
+        
         public init() { }
         
-        public required init(_ builder: (Task.Sending<Task.Value<T>>) throws -> Void) {
+        public required convenience init(_ builder: (Task.Sending<Task.Value<T>>) throws -> Void) {
+            self.init()
+            // TODO: fix throwing
+            try? builder(self.sending)
         }
         
         public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
