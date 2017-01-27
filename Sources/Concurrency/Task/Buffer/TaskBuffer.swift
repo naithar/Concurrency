@@ -34,7 +34,6 @@ extension Task {
         }
         
         public var first: Value? {
-            
             return self.array.first
         }
         

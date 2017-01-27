@@ -25,6 +25,8 @@ extension Task {
         public typealias Value = Task.Element<Element>
         public typealias Error = TaskValueError
         
+        public fileprivate(set) var isFinished = false
+        
         fileprivate var condition = DispatchCondition()
         
         fileprivate var value: Value?
@@ -82,6 +84,7 @@ extension Task.Value: Sendable {
         }
         
         self.value = .value(value)
+        self.isFinished = true
     }
     
     public func `throw`(_ error: Swift.Error) throws {
@@ -96,6 +99,7 @@ extension Task.Value: Sendable {
         }
         
         self.value = .error(error)
+        self.isFinished = true
     }
 }
 
