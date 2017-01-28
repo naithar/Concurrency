@@ -39,7 +39,8 @@ extension Task {
         
         public init() { }
         
-        public required init(_ builder: (Task.Sending<Task.Value>) throws -> Void) {
+        public required convenience init(_ builder: (Task.Sending<Task.Value>) throws -> Void) {
+            self.init()
         }
         
         public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
