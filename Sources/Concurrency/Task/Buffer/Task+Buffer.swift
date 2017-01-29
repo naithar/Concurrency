@@ -1,5 +1,5 @@
 //
-//  Buffer.swift
+//  Task+Buffer.swift
 //  SwiftAsync
 //
 //  Created by Sergey Minakov on 03.01.17.
@@ -16,6 +16,7 @@ public enum TaskBufferError: Swift.Error {
 }
 
 extension Task {
+    
     public final class Buffer<T>: TaskProtocol {
         
         public typealias ID = IDGenerator.ID
@@ -55,7 +56,7 @@ extension Task {
         
         public init() { }
         
-        public required init(_ builder: (Task.Sending<Buffer>) throws -> Void) {
+        public required init(_ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) rethrows {
             
         }
         

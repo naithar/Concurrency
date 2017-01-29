@@ -1,5 +1,5 @@
 //
-//  TaskValue.swift
+//  Task+Value.swift
 //  SwiftAsync
 //
 //  Created by Sergey Minakov on 03.01.17.
@@ -37,13 +37,23 @@ extension Task {
             }
         }
         
+        public private (set) lazy var sending: Task.Sending<Task.Value<T>> = Task.Sending(container: self)
+        
         public init() { }
         
-        public required convenience init(_ builder: (Task.Sending<Task.Value>) throws -> Void) {
+        public required convenience init(_ builder: (Task.Sending<Task.Value<T>>) throws -> Void) rethrows {
             self.init()
+            
+            do {
+                try builder(self.sending)
+            } catch {
+                try self.throw(error)
+            }
         }
         
-        public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
+        public required convenience init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
+            self.init()
+            
             
         }
         

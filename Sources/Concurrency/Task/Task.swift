@@ -12,7 +12,7 @@ public protocol TaskProtocol: Sendable, Waitable {
     
     associatedtype Element
     
-    init(_ builder: (Task.Sending<Self>) throws -> Void)
+    init(_ builder: (Task.Sending<Self>) throws -> Void) rethrows
     init(_ closure: @autoclosure @escaping (Void) throws -> Element)
 }
 
