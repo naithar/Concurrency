@@ -54,7 +54,14 @@ extension Task {
         public required convenience init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
             self.init()
             
-            
+            DispatchQueue.global().async {
+                do {
+                    let value = try closure()
+                    try? self.send(value)
+                } catch {
+                    try? self.throw(error)
+                }
+            }
         }
         
         
