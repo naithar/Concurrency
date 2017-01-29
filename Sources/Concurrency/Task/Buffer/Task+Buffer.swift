@@ -54,14 +54,18 @@ extension Task {
             }
         }
         
+        public private (set) lazy var sending: Task.Sending<Task.Buffer<T>> = Task.Sending(container: self)
+        
         public init() { }
         
-        public required init(_ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) rethrows {
+        public required convenience init(_ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) rethrows {
+            self.init()
             
-        }
-        
-        public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
-            
+            do {
+                try builder(self.sending)
+            } catch {
+                try self.throw(error)
+            }
         }
     }
 }
