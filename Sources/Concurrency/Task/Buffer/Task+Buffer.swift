@@ -1,5 +1,5 @@
 //
-//  Buffer.swift
+//  Task+Buffer.swift
 //  SwiftAsync
 //
 //  Created by Sergey Minakov on 03.01.17.
@@ -10,9 +10,8 @@ import Dispatch
 
 let TaskBufferIDGenerator = IDGenerator(key: "task-buffer")
 
-
-
 extension Task {
+    
     public final class Buffer<T>: TaskProtocol {
         
         public enum Error: Swift.Error {
@@ -53,14 +52,19 @@ extension Task {
             }
         }
         
-        public init() { }
+        public private (set) lazy var sending: Task.Sending<Task.Buffer<T>> = Task.Sending(container: self)
         
-        public required init(_ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) {
-            
+        public init() {
         }
         
-        public required init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
+        public required convenience init(_ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) rethrows {
+            self.init()
             
+            do {
+                try builder(self.sending)
+            } catch {
+                try self.throw(error)
+            }
         }
     }
 }
@@ -85,39 +89,6 @@ extension Task.Buffer {
             throw error
         }
     }
-    
-    
-    //    public mutating func append(_ value: Value) throws {
-    //        guard !self.isClosed else {
-    //            throw Error.closed
-    //        }
-    //
-    //        if case .size(let count) = self.capacity,
-    //            self.array.count + 1 > count {
-    //            throw Error.exceededCapacity
-    //        }
-    //
-    //        self.array.append(value)
-    //    }
-    //
-    //    public mutating func append(values: [Value]) throws {
-    //        guard !self.isClosed else {
-    //            throw Error.closed
-    //        }
-    //
-    //        if case .size(let count) = self.capacity,
-    //            self.array.count + values.count > count {
-    //            throw Error.exceededCapacity
-    //        }
-    //
-    //        self.array.append(contentsOf: values)
-    //    }
-    //
-    //    public mutating func remove(at index: Index) throws -> Value {
-    //        guard !self.isClosed else { throw Error.closed }
-    //        guard self.array.count > 0 else { throw Error.empty }
-    //        return self.array.remove(at: index)
-    //    }
 }
 
 // MARK: Sendable
