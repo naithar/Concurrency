@@ -12,6 +12,8 @@ public protocol Taskable: Sendable, Waitable {
     
     associatedtype Element
     
+    var error: Swift.Error? { get }
+    
     //TODO: global error
     
     init(on queue: DispatchQueue?, _ builder: (Task.Sending<Self>) throws -> Void) rethrows

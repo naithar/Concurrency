@@ -25,6 +25,8 @@ extension Task {
         
         fileprivate var condition = DispatchCondition()
         
+        public fileprivate (set) var error: Swift.Error?
+        
         fileprivate var array = [Value]()
         
         public var id: ID = TaskBufferIDGenerator.next()

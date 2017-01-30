@@ -24,15 +24,15 @@ extension Task {
         public typealias Element = T
         public typealias Value = Task.Element<Element>
         
-        public fileprivate(set) var isFinished = false
+        public fileprivate (set) var isFinished = false
+        
+        public fileprivate (set) var error: Swift.Error?
         
         fileprivate var condition = DispatchCondition()
         
         fileprivate var value: Value?
         
         public var id: ID = TaskValueIDGenerator.next()
-        
-        //TODO: global error
         
         public var isEmpty: Bool {
             get {
@@ -78,6 +78,10 @@ extension Task {
 
 extension Task.Value {
     
+    fileprivate func shouldWait() -> Bool {
+        return self.value == nil && self.error == nil
+    }
+    
     fileprivate func receiveElement() throws -> Element {
         guard let value = self.value else {
             throw Error.empty
@@ -103,8 +107,14 @@ extension Task.Value: Sendable {
             self.condition.mutex.unlock()
         }
         
+        guard self.error == nil else {
+            throw self.error!
+        }
+        
         guard self.value == nil else {
-            throw Error.notEmpty
+            let error = Error.notEmpty
+            self.error = error
+            throw error
         }
         
         self.value = .value(value)
@@ -118,8 +128,14 @@ extension Task.Value: Sendable {
             self.condition.mutex.unlock()
         }
         
+        guard self.error == nil else {
+            throw self.error!
+        }
+        
         guard self.value == nil else {
-            throw Error.notEmpty
+            let error = Error.notEmpty
+            self.error = error
+            throw error
         }
         
         self.value = .error(error)
@@ -139,8 +155,12 @@ extension Task.Value: Waitable {
             self.condition.mutex.unlock()
         }
         
-        while self.value == nil {
+        while self.shouldWait() {
             self.condition.wait()
+        }
+        
+        guard self.error == nil else {
+            throw self.error!
         }
         
         return try self.receiveElement()
@@ -154,8 +174,12 @@ extension Task.Value: Waitable {
             self.condition.mutex.unlock()
         }
         
-        if self.value == nil {
+        if self.shouldWait() {
             self.condition.wait(timeout: timeout)
+        }
+        
+        guard self.error == nil else {
+            throw self.error!
         }
         
         return try self.receiveElement()
