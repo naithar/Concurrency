@@ -12,7 +12,7 @@ let TaskBufferIDGenerator = IDGenerator(key: "task-buffer")
 
 extension Task {
     
-    public final class Buffer<T>: TaskProtocol {
+    public final class Buffer<T>: Taskable {
         
         public enum Error: Swift.Error {
             case closed
@@ -41,9 +41,13 @@ extension Task {
             return self.array.last
         }
         
+        //TODO: global error
+        
         private var _closed = false
         public var isClosed: Bool {
             set {
+                self.condition.mutex.lock()
+                defer { self.condition.mutex.unlock() }
                 guard !self._closed else { return }
                 self._closed = newValue
             }
@@ -53,11 +57,13 @@ extension Task {
         }
         
         public private (set) lazy var sending: Task.Sending<Task.Buffer<T>> = Task.Sending(container: self)
+        public private (set) lazy var waiting: Task.Waiting<Task.Buffer<T>> = Task.Waiting(container: self)
         
-        public init() {
-        }
+        public init() { }
         
-        public required convenience init(_ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) rethrows {
+        //TODO: queue usage
+        
+        public required convenience init(on: DispatchQueue? = nil, _ builder: (Task.Sending<Task.Buffer<T>>) throws -> Void) rethrows {
             self.init()
             
             do {
@@ -68,6 +74,8 @@ extension Task {
         }
     }
 }
+
+// MARK: Fileprivate extensions
 
 extension Task.Buffer {
     
@@ -88,6 +96,16 @@ extension Task.Buffer {
         case .error(let error):
             throw error
         }
+    }
+}
+
+// MARK: Public extensions
+
+extension Task.Buffer {
+
+    // TODO: loop breaking
+    public func loop(on: DispatchQueue? = nil, action: @escaping (Element?, Swift.Error?) -> ()) {
+        // TODO: loop in queue
     }
 }
 

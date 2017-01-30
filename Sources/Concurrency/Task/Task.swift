@@ -8,14 +8,9 @@
 
 @_exported import Dispatch
 
-public protocol TaskProtocol: Sendable, Waitable {
-    
-    associatedtype Element
-    
-    init(_ builder: (Task.Sending<Self>) throws -> Void) rethrows
-}
-
 public enum Task {
+    
+    public static let defaultQueue = DispatchQueue(label: "module.Task.main-queue", attributes: [.concurrent])
     
     public class Sending<T: Sendable>: Sendable {
         
@@ -62,6 +57,6 @@ public enum Task {
     
     public enum Element<Element> {
         case value(Element)
-        case error(Swift.Error)
+        case error(Swift.Error) //???
     }
 }

@@ -8,14 +8,12 @@
 
 import Dispatch
 
-
-
 let TaskValueIDGenerator = IDGenerator(key: "task-value")
 
 
 extension Task {
     
-    public final class Value<T>: TaskProtocol {
+    public final class Value<T>: Taskable {
         
         public enum Error: Swift.Error {
             case notEmpty
@@ -34,20 +32,22 @@ extension Task {
         
         public var id: ID = TaskValueIDGenerator.next()
         
+        //TODO: global error
+        
         public var isEmpty: Bool {
             get {
                 return self.value == nil
             }
         }
         
-        public lazy var sending: Task.Sending<Task.Value<T>> = Task.Sending(container: self)
-        public lazy var waiting: Task.Waiting<Task.Value<T>> = Task.Waiting(container: self)
+        public private (set) lazy var sending: Task.Sending<Task.Value<T>> = Task.Sending(container: self)
+        public private (set) lazy var waiting: Task.Waiting<Task.Value<T>> = Task.Waiting(container: self)
         
         public init() { }
         
-        public init() { }
+        //TODO: queue usage
         
-        public required convenience init(_ builder: (Task.Sending<Task.Value<T>>) throws -> Void) rethrows {
+        public required convenience init(on queue: DispatchQueue? = nil, _ builder: (Task.Sending<Task.Value<T>>) throws -> Void) rethrows {
             self.init()
             
             do {
@@ -57,13 +57,15 @@ extension Task {
             }
         }
         
-        public required convenience init(_ closure: @autoclosure @escaping (Void) throws -> Element) {
-            self.init()
+        public required convenience init(on queue: DispatchQueue? = nil, _ closure: @autoclosure @escaping (Void) throws -> Element) {
+            let taskQueue = queue ?? Task.defaultQueue
             
-            DispatchQueue.global().async {
+            self.init()
+
+            taskQueue.async {
                 do {
                     let value = try closure()
-                    try? self.send(value)
+                    try self.send(value)
                 } catch {
                     try? self.throw(error)
                 }
