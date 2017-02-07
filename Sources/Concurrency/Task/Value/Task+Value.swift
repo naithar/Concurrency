@@ -47,28 +47,44 @@ extension Task {
         
         //TODO: queue usage
         
-        public required convenience init(on queue: DispatchQueue? = nil, _ builder: (Task.Sending<Task.Value<T>>) throws -> Void) rethrows {
-            self.init()
-            
-            do {
-                try builder(self.sending)
-            } catch {
-                try self.throw(error)
-            }
-        }
-        
-        public required convenience init(on queue: DispatchQueue? = nil, _ closure: @autoclosure @escaping (Void) throws -> Element) {
+        public convenience init(on queue: DispatchQueue? = nil, delay: DispatchTime? = nil, _ builder: @escaping (Task.Sending<Task.Value<T>>) throws -> Void) {
             let taskQueue = queue ?? Task.defaultQueue
             
             self.init()
-
-            taskQueue.async {
+            
+            func action() {
+                do {
+                    try builder(self.sending)
+                } catch {
+                    try? self.throw(error)
+                }
+            }
+            
+            if let delay = delay {
+                taskQueue.asyncAfter(deadline: delay, execute: action)
+            } else {
+                taskQueue.async(execute: action)
+            }
+        }
+        
+        public required convenience init(on queue: DispatchQueue? = nil, delay: DispatchTime? = nil, _ closure: @autoclosure @escaping (Void) throws -> Element) {
+            let taskQueue = queue ?? Task.defaultQueue
+            
+            self.init()
+            
+            func action() {
                 do {
                     let value = try closure()
                     try self.send(value)
                 } catch {
                     try? self.throw(error)
                 }
+            }
+
+            if let delay = delay {
+                taskQueue.asyncAfter(deadline: delay, execute: action)
+            } else {
+                taskQueue.async(execute: action)
             }
         }
         
@@ -83,6 +99,10 @@ extension Task.Value {
     }
     
     fileprivate func receiveElement() throws -> Element {
+        guard self.error == nil else {
+            throw self.error!
+        }
+        
         guard let value = self.value else {
             throw Error.empty
         }
@@ -159,10 +179,6 @@ extension Task.Value: Waitable {
             self.condition.wait()
         }
         
-        guard self.error == nil else {
-            throw self.error!
-        }
-        
         return try self.receiveElement()
     }
     
@@ -176,10 +192,6 @@ extension Task.Value: Waitable {
         
         if self.shouldWait() {
             self.condition.wait(timeout: timeout)
-        }
-        
-        guard self.error == nil else {
-            throw self.error!
         }
         
         return try self.receiveElement()

@@ -16,5 +16,5 @@ public protocol Taskable: Sendable, Waitable {
     
     //TODO: global error
     
-    init(on queue: DispatchQueue?, _ builder: (Task.Sending<Self>) throws -> Void) rethrows
+    init(on queue: DispatchQueue?, delay: DispatchTime?, _ closure: @escaping (Task.Sending<Self>) throws -> Void)
 }
