@@ -92,6 +92,45 @@ extension Task {
                 taskQueue.async(execute: action)
             }
         }
+        
+        public convenience init(on queue: DispatchQueue? = nil, value: @autoclosure @escaping (Void) throws -> Element) {
+            self.init()
+            self.commonInit(on: queue, delay: nil, values: { return [try value()] })
+        }
+        
+        public convenience init(on queue: DispatchQueue? = nil, delay: @autoclosure @escaping () -> DispatchTime, value: @autoclosure @escaping (Void) throws -> Element) {
+            self.init()
+            self.commonInit(on: queue, delay: delay, values: { return [try value()] })
+        }
+        
+        public convenience init(on queue: DispatchQueue? = nil, values: @autoclosure @escaping (Void) throws -> [Element]) {
+            self.init()
+            self.commonInit(on: queue, delay: nil, values: values)
+        }
+        
+        public convenience init(on queue: DispatchQueue? = nil, delay: @autoclosure @escaping () -> DispatchTime, values: @autoclosure @escaping (Void) throws -> [Element]) {
+            self.init()
+            self.commonInit(on: queue, delay: delay, values: values)
+        }
+        
+        private func commonInit(on queue: DispatchQueue?, delay: (() -> DispatchTime)?, values closure: @escaping (Void) throws -> [Element]) {
+            let taskQueue = queue ?? Task.defaultQueue
+            
+            func action() {
+                do {
+                    let value = try closure()
+                    try self.send(value)
+                } catch {
+                    try? self.throw(error)
+                }
+            }
+            
+            if let delay = delay {
+                taskQueue.asyncAfter(deadline: delay(), execute: action)
+            } else {
+                taskQueue.async(execute: action)
+            }
+        }
     }
 }
 

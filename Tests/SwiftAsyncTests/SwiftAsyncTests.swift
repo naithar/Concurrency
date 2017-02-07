@@ -7,7 +7,7 @@ class SwiftAsyncTests: XCTestCase {
     
     func testExample() {
         
-        let task = Task.Value<Int>()
+        let task = Task.Value<Int>(value: 10)
 
         DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
 

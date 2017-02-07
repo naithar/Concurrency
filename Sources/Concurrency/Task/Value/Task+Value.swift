@@ -85,7 +85,7 @@ extension Task {
             self.commonInit(on: queue, delay: delay, value: value)
         }
         
-        private func commonInit(on queue: DispatchQueue?, delay: (() -> DispatchTime)?, value closure: @autoclosure @escaping (Void) throws -> Element) {
+        private func commonInit(on queue: DispatchQueue?, delay: (() -> DispatchTime)?, value closure: @escaping (Void) throws -> Element) {
             let taskQueue = queue ?? Task.defaultQueue
             
             func action() {
@@ -103,8 +103,6 @@ extension Task {
                 taskQueue.async(execute: action)
             }
         }
-        
-        
     }
 }
 
