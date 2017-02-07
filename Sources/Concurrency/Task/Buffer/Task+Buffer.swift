@@ -92,10 +92,14 @@ extension Task {
 extension Task.Buffer {
     
     fileprivate func shouldWait() -> Bool {
-        return self.first == nil && !self.isClosed
+        return self.first == nil && !self.isClosed && self.error == nil
     }
     
     fileprivate func receiveElement() throws -> Element {
+        guard self.error == nil else {
+            throw self.error!
+        }
+        
         guard self.array.count > 0 else {
             throw Error.empty
         }
@@ -114,10 +118,44 @@ extension Task.Buffer {
 // MARK: Public extensions
 
 extension Task.Buffer {
-
-    // TODO: loop breaking
-    public func loop(on: DispatchQueue? = nil, action: @escaping (Element?, Swift.Error?) -> ()) {
-        // TODO: loop in queue
+    
+    public func loop(on queue: DispatchQueue? = nil, action: @escaping (Int, Element?, Swift.Error?, inout Bool) -> ()) {
+        var finished = false
+        var index = 0
+        while !finished {
+            var actionElement: Element?
+            var actionError: Swift.Error?
+            
+            do {
+                actionElement = try self.wait()
+            } catch {
+                actionError = error
+            }
+            
+            action(index, actionElement, actionError, &finished)
+            
+            index += 1
+        }
+    }
+    
+    public func loop(on queue: DispatchQueue? = nil, timeout: @autoclosure @escaping () -> DispatchTime, action: @escaping (Int, Element?, Swift.Error?, inout Bool) -> ()) {
+        var finished = false
+        var index = 0
+        while !finished {
+            var actionElement: Element?
+            var actionError: Swift.Error?
+            
+            do {
+                let timeoutValue = timeout()
+                actionElement = try self.wait(timeout: timeoutValue)
+            } catch {
+                actionError = error
+            }
+            
+            action(index, actionElement, actionError, &finished)
+            
+            index += 1
+        }
     }
 }
 
@@ -133,6 +171,16 @@ extension Task.Buffer: Sendable {
             self.condition.mutex.unlock()
         }
         
+        guard self.error == nil else {
+            throw self.error!
+        }
+        
+        guard !self.isClosed else {
+            let error = Error.closed
+            self.error = error
+            throw error
+        }
+        
         self.array.append(.value(value))
     }
 
@@ -141,6 +189,16 @@ extension Task.Buffer: Sendable {
         defer {
             self.condition.broadcast()
             self.condition.mutex.unlock()
+        }
+        
+        guard self.error == nil else {
+            throw self.error!
+        }
+        
+        guard !self.isClosed else {
+            let error = Error.closed
+            self.error = error
+            throw error
         }
         
         self.array.append(.error(error))
