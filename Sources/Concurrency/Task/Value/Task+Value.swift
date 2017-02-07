@@ -47,10 +47,18 @@ extension Task {
         
         //TODO: queue usage
         
-        public convenience init(on queue: DispatchQueue? = nil, delay: DispatchTime? = nil, _ builder: @escaping (Task.Sending<Task.Value<T>>) throws -> Void) {
-            let taskQueue = queue ?? Task.defaultQueue
-            
+        public required convenience init(on queue: DispatchQueue?, _ builder: @escaping (Task.Sending<Task.Value<T>>) throws -> Void) {
             self.init()
+            self.commonInit(on: queue, builder: builder)
+        }
+        
+        public required convenience init(on queue: DispatchQueue?, delay: @autoclosure @escaping () -> DispatchTime, _ builder: @escaping (Task.Sending<Task.Value<T>>) throws -> Void) {
+            self.init()
+            self.commonInit(on: queue, delay: delay, builder: builder)
+        }
+        
+        private func commonInit(on queue: DispatchQueue? = nil, delay: (() -> DispatchTime)? = nil, builder: @escaping (Task.Sending<Task.Value<T>>) throws -> Void) {
+            let taskQueue = queue ?? Task.defaultQueue
             
             func action() {
                 do {
@@ -61,16 +69,24 @@ extension Task {
             }
             
             if let delay = delay {
-                taskQueue.asyncAfter(deadline: delay, execute: action)
+                taskQueue.asyncAfter(deadline: delay(), execute: action)
             } else {
                 taskQueue.async(execute: action)
             }
         }
         
-        public required convenience init(on queue: DispatchQueue? = nil, delay: DispatchTime? = nil, _ closure: @autoclosure @escaping (Void) throws -> Element) {
-            let taskQueue = queue ?? Task.defaultQueue
-            
+        public convenience init(on queue: DispatchQueue? = nil, value: @autoclosure @escaping (Void) throws -> Element) {
             self.init()
+            self.commonInit(on: queue, value: value)
+        }
+        
+        public convenience init(on queue: DispatchQueue? = nil, delay: @autoclosure @escaping () -> DispatchTime, value: @autoclosure @escaping (Void) throws -> Element) {
+            self.init()
+            self.commonInit(on: queue, delay: delay, value: value)
+        }
+        
+        private func commonInit(on queue: DispatchQueue? = nil, delay: (() -> DispatchTime)? = nil, value closure: @autoclosure @escaping (Void) throws -> Element) {
+            let taskQueue = queue ?? Task.defaultQueue
             
             func action() {
                 do {
@@ -82,7 +98,7 @@ extension Task {
             }
 
             if let delay = delay {
-                taskQueue.asyncAfter(deadline: delay, execute: action)
+                taskQueue.asyncAfter(deadline: delay(), execute: action)
             } else {
                 taskQueue.async(execute: action)
             }

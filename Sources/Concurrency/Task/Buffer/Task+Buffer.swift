@@ -65,11 +65,19 @@ extension Task {
         
         //TODO: queue usage
         
-        public required convenience init(on queue: DispatchQueue? = nil, delay: DispatchTime? = nil, _ builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
-            let taskQueue = queue ?? Task.defaultQueue
-            
+        public required convenience init(on queue: DispatchQueue?, _ builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
             self.init()
-            
+            self.commonInit(on: queue, delay: nil, builder: builder)
+        }
+        
+        public required convenience init(on queue: DispatchQueue?, delay: @autoclosure @escaping () -> DispatchTime, _ builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
+            self.init()
+            self.commonInit(on: queue, delay: delay, builder: builder)
+        }
+        
+        private func commonInit(on queue: DispatchQueue?, delay: (() -> DispatchTime)? = nil, builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
+            let taskQueue = queue ?? Task.defaultQueue
+        
             func action() {
                 do {
                     try builder(self.sending)
@@ -77,9 +85,9 @@ extension Task {
                     try? self.throw(error)
                 }
             }
-            
+
             if let delay = delay {
-                taskQueue.asyncAfter(deadline: delay, execute: action)
+                taskQueue.asyncAfter(deadline: delay(), execute: action)
             } else {
                 taskQueue.async(execute: action)
             }
