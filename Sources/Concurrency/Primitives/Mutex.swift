@@ -20,7 +20,6 @@ public class DispatchMutex {
         self.mutex = pthread_mutex_t()
         pthread_mutex_init(&mutex, nil)
     }
-
     
     public func lock(_ closure: (Void) -> Void) {
         self.lock()
@@ -28,12 +27,14 @@ public class DispatchMutex {
         closure()
     }
     
-    public func lock() {
-        pthread_mutex_lock(&self.mutex)
+    @discardableResult
+    public func lock() -> Bool {
+        return pthread_mutex_lock(&self.mutex) == 0
     }
     
-    public func unlock() {
-        pthread_mutex_unlock(&self.mutex)
+    @discardableResult
+    public func unlock() -> Bool {
+        return pthread_mutex_unlock(&self.mutex) == 0
     }
     
     deinit {

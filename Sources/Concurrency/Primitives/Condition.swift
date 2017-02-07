@@ -30,8 +30,9 @@ public class DispatchCondition {
         pthread_cond_init(&self.condition, nil)
     }
     
-    public func broadcast() {
-        pthread_cond_broadcast(&self.condition)
+    @discardableResult
+    public func broadcast() -> Bool {
+        return pthread_cond_broadcast(&self.condition) == 0
     }
     
     @discardableResult
@@ -57,8 +58,9 @@ public class DispatchCondition {
         return pthread_cond_timedwait(&self.condition, &self.mutex.mutex, &ts) == 0
     }
     
-    public func signal() {
-        pthread_cond_signal(&self.condition)
+    @discardableResult
+    public func signal() -> Bool {
+        return pthread_cond_signal(&self.condition) == 0
     }
     
     deinit {
