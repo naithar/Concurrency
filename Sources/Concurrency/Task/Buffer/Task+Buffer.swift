@@ -65,17 +65,17 @@ extension Task {
         
         //TODO: queue usage
         
-        public required convenience init(on queue: DispatchQueue?, _ builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
+        public required convenience init(on queue: DispatchQueue? = nil, _ builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
             self.init()
             self.commonInit(on: queue, delay: nil, builder: builder)
         }
         
-        public required convenience init(on queue: DispatchQueue?, delay: @autoclosure @escaping () -> DispatchTime, _ builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
+        public required convenience init(on queue: DispatchQueue? = nil, delay: @autoclosure @escaping () -> DispatchTime, _ builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
             self.init()
             self.commonInit(on: queue, delay: delay, builder: builder)
         }
         
-        private func commonInit(on queue: DispatchQueue?, delay: (() -> DispatchTime)? = nil, builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
+        private func commonInit(on queue: DispatchQueue?, delay: (() -> DispatchTime)?, builder: @escaping (Task.Sending<Task.Buffer<T>>) throws -> Void) {
             let taskQueue = queue ?? Task.defaultQueue
         
             func action() {
