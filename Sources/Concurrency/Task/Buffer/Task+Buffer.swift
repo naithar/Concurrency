@@ -120,41 +120,38 @@ extension Task.Buffer {
 extension Task.Buffer {
     
     public func loop(on queue: DispatchQueue? = nil, action: @escaping (Int, Element?, Swift.Error?, inout Bool) -> ()) {
-        var finished = false
-        var index = 0
-        while !finished {
-            var actionElement: Element?
-            var actionError: Swift.Error?
-            
-            do {
-                actionElement = try self.wait()
-            } catch {
-                actionError = error
-            }
-            
-            action(index, actionElement, actionError, &finished)
-            
-            index += 1
-        }
+        self.loop(on: queue, wait: { try self.wait() }, action: action)
     }
     
     public func loop(on queue: DispatchQueue? = nil, timeout: @autoclosure @escaping () -> DispatchTime, action: @escaping (Int, Element?, Swift.Error?, inout Bool) -> ()) {
+        self.loop(on: queue, wait: { try self.wait(timeout: timeout()) }, action: action)
+    }
+    
+    private func loop(on queue: DispatchQueue? = nil, wait: @escaping () throws -> Element, action: @escaping (Int, Element?, Swift.Error?, inout Bool) -> ()) {
         var finished = false
         var index = 0
-        while !finished {
-            var actionElement: Element?
-            var actionError: Swift.Error?
-            
-            do {
-                let timeoutValue = timeout()
-                actionElement = try self.wait(timeout: timeoutValue)
-            } catch {
-                actionError = error
+        func loop() {
+            while !finished {
+                var actionElement: Element?
+                var actionError: Swift.Error?
+                
+                do {
+                    actionElement = try wait()
+                } catch {
+                    actionError = error
+                }
+                
+                action(index, actionElement, actionError, &finished)
+                index += 1
             }
-            
-            action(index, actionElement, actionError, &finished)
-            
-            index += 1
+        }
+        
+        if let queue = queue {
+            queue.async {
+                loop()
+            }
+        } else {
+            loop()
         }
     }
 }
@@ -182,6 +179,26 @@ extension Task.Buffer: Sendable {
         }
         
         self.array.append(.value(value))
+    }
+    
+    public func send(_ values: [T]) throws {
+        self.condition.mutex.lock()
+        defer {
+            self.condition.broadcast()
+            self.condition.mutex.unlock()
+        }
+        
+        guard self.error == nil else {
+            throw self.error!
+        }
+        
+        guard !self.isClosed else {
+            let error = Error.closed
+            self.error = error
+            throw error
+        }
+        
+        self.array.append(contentsOf: values.map { .value($0) })
     }
 
     public func `throw`(_ error: Swift.Error) throws {
