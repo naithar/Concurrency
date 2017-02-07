@@ -15,14 +15,14 @@ public struct Atomic<T> {
     
     public var value: Element {
         set {
-            self.mutex.lock()
-            defer { self.mutex.unlock() }
-            self._value = newValue
+            self.mutex.in {
+                self._value = newValue
+            }
         }
         get {
-            self.mutex.lock()
-            defer { self.mutex.unlock() }
-            return self._value
+            return self.mutex.in {
+                return self._value
+            }
         }
     }
     

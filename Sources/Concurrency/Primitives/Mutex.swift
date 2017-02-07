@@ -21,10 +21,11 @@ public class DispatchMutex {
         pthread_mutex_init(&mutex, nil)
     }
     
-    public func lock(_ closure: (Void) -> Void) {
+    @discardableResult
+    public func `in`<T>(_ closure: (Void) -> T) -> T {
         self.lock()
         defer { self.unlock() }
-        closure()
+        return closure()
     }
     
     @discardableResult
