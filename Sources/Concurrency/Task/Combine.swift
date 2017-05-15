@@ -25,9 +25,14 @@ extension Task {
     }
 }
 
-func combine<T>(_ tasks: [Task<T>]) -> Task<[T]> {
+func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     let newTask = Task<[T]>()
     var (total, array) = (tasks.count, [T]())
+    
+    guard tasks.count > 0 else {
+        newTask.send([])
+        return newTask
+    }
     
     for task in tasks {
         task
@@ -49,14 +54,9 @@ func combine<T>(_ tasks: [Task<T>]) -> Task<[T]> {
     return newTask
 }
 
-//extension Array where Element: Task<Equatable> {
-//
-//    func combine() {
-//
-//    }
-//}
-//
-//func f() {
-//
-//    [Task<Int>(), Task<Int>()].co
-//}
+extension Array where Element: Taskable {
+
+    func combine() -> Task<[Element.Element]> {
+        return Concurrency.combine(tasks: self.flatMap { $0 as? Task<Element.Element> })
+    }
+}
