@@ -10,26 +10,22 @@ extension Task where Element: Sequence {
     
     typealias ArrayElement = Element.Iterator.Element
     
-    func map<U>(_ action: (ArrayElement) throws -> U) -> Task<[U]> {
-        let newTask = Task<[U]>()
-        
-        return newTask
+    func map<U>(transform: @escaping (ArrayElement) throws -> U) -> Task<[U]> {
+        return self.then { array in
+            return try array.map { try transform($0) }
+        }
     }
     
-    func flatMap<U>(_ action: (ArrayElement) throws -> U?) -> Task<[U]> {
-        let newTask = Task<[U]>()
-        
-        return newTask
+    func flatMap<U>(transform: @escaping (ArrayElement) throws -> U?) -> Task<[U]> {
+        return self.then { array in
+            return try array.flatMap { try transform($0) }
+        }
     }
     
-    func reduce<Result>(_ initial: Result, _ action: (Result, ArrayElement) throws -> Result) -> Task<Result> {
-        let newTask = Task<Result>()
-        
-        return newTask
+    func reduce<Result>(_ initial: Result,
+                _ transform: @escaping (Result, ArrayElement) throws -> Result) -> Task<Result> {
+        return self.then { array in
+            return try array.reduce(initial, transform)
+        }
     }
 }
-
-//func foo() {
-
-//    [Task<Int>(), Task<Int>()].combine().map(<#T##action: (Int) -> U##(Int) -> U#>)
-//}
