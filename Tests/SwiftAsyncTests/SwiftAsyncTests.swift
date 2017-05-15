@@ -5,65 +5,192 @@ import Foundation
 
 class SwiftAsyncTests: XCTestCase {
     
-    func testExample() {
+    enum Error: Swift.Error {
+        case er
+    }
+    func testSend() {
+        let expectation = self.expectation(description: "expectation")
+        var value = 0
         
-        let task = Task.Value<Int>(value: 10)
-
-        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
-
-            let a = try? task.wait()
-
-            print(a!)
-        }
-
+        let task = Task<Int>()
+            .done { value = $0 * 2 }
+            .always { _ in expectation.fulfill() }
         
-        DispatchQueue(label: "aa").asyncAfter(deadline: .now()) {
-            try? task.send(10)
-        }
-    
-        sleep(3)
+        task.send(10)
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(20, value)
     }
     
-    func testAsync() {
+    func testThrow() {
+        let expectation = self.expectation(description: "expectation")
+        var error: Swift.Error?
         
+        let task = Task<Int>()
+            .catch { error = $0 }
+            .always { _ in expectation.fulfill() }
+        
+        task.throw(Error.er)
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertNotNil(error)
     }
     
-    func testSelect() {
+    func testRecover() {
+        var expectation = self.expectation(description: "expectation")
+        var error: Swift.Error?
+        var value = 0
         
-//        var a: Int = 0
-//        coroutine {
-//            a = 10
-//            print(a)
-//        }
-//        
-//        let coro = coroutine { Void -> Int in
-//            return 0
-//        }
+        var task = Task<Int>()
+            .done { value = $0 * 2 }
+            .catch { error = $0 }
+            .recover { _ in 10 }
+            .always { _ in expectation.fulfill() }
         
+        task.throw(Error.er)
         
-//        func foo<T: Receiving>(aa: T) where T.Element == Int {
-//            
-//        }
-//        
-//        foo(aa: Task<Int>())
-//        
-//        select { when in
-//            
-//        }
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertNil(error)
+        XCTAssertEqual(20, value)
+        
+        expectation = self.expectation(description: "expectation")
+        value = 0
+        task = Task<Int>()
+            .done { value = $0 * 2 }
+            .catch { error = $0 }
+            .recover { throw $0 }
+            .always { _ in expectation.fulfill() }
+        
+        task.throw(Error.er)
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertNotNil(error)
+        XCTAssertEqual(0, value)
     }
     
-    func testWait() {
+    func testInitializerBuild() {
+        let expectation = self.expectation(description: "expectation")
+        var value = 0
         
-//        let con = DispatchCondition()
-//        
-//        con.signal()
-//        con.wait()
-//        print("a")
+        Task<Int> { task in
+                task.send(10)
+            }
+            .done { value = $0 * 2 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(20, value)
     }
-
+    
+    func testInitializerValue() {
+        let expectation = self.expectation(description: "expectation")
+        var value = 0
+        
+        Task<Int>(10)
+            .done { value = $0 * 2 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(20, value)
+    }
+    
+    func testInitializerState() {
+        let expectation = self.expectation(description: "expectation")
+        var value = 0
+        
+        Task<Int>(state: .finished(10))
+            .done { value = $0 * 2 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(20, value)
+    }
+    
+    func testChain() {
+        var expectation = self.expectation(description: "expectation")
+        var value = 0
+        
+        Task<Int>(10)
+            .then { $0 + 5 }
+            .then { $0 * 2 }
+            .recover { _ in 40 }
+            .then { value = $0 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(30, value)
+        
+        expectation = self.expectation(description: "expectation")
+        value = 0
+        
+        Task<Int>(10)
+            .then { $0 + 5 }
+            .then { $0 * 2 }
+            .then { _ in throw Error.er }
+            .recover { _ in 40 }
+            .then { value = $0 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(40, value)
+    }
+    
+    func testQueue() {
+        var expectation = self.expectation(description: "expectation")
+        var value = 0
+        var main = true
+        
+        Task<Int>(10)
+            .then { $0 + 5 }
+            .then(on: .global()) { main = Thread.isMainThread; return $0 * 2 }
+            .then { value = $0 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(30, value)
+        XCTAssertEqual(false, main)
+        
+        expectation = self.expectation(description: "expectation")
+        main = false
+        value = 0
+        
+        Task<Int>(10)
+            .then { $0 + 5 }
+            .then { $0 * 2 }
+            .then { _ in throw Error.er }
+            .recover { _ in 40 }
+            .then(on: .main) { main = Thread.isMainThread; value = $0 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(40, value)
+        XCTAssertEqual(true, main)
+    }
+    
+    func testDelay() {
+        let expectation = self.expectation(description: "expectation")
+        var value = 0
+        
+        Task<Int>(10)
+            .then(delay: .now() + 3) { $0 * 2 }
+            .done { value = $0 }
+            .always { _ in expectation.fulfill() }
+        
+        self.wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(20, value)
+    }
+    
     static var allTests : [(String, (SwiftAsyncTests) -> () throws -> Void)] {
         return [
-            ("testExample", testExample),
+            ("testSend", testSend),
+            ("testThrow", testThrow),
+            ("testRecover", testRecover),
+            ("testInitializerBuild", testInitializerBuild),
+            ("testInitializerValue", testInitializerValue),
+            ("testInitializerState", testInitializerState),
+            ("testChain", testChain),
+            ("testQueue", testQueue),
+            ("testDelay", testDelay),
         ]
     }
 }

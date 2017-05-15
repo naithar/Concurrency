@@ -8,55 +8,143 @@
 
 @_exported import Dispatch
 
-public enum Task {
+fileprivate let TaskIDGenerator = IDGenerator(key: "task.id")
+
+public class Task<Element> {
     
-    public static let defaultQueue = DispatchQueue(label: "module.Task.main-queue", attributes: [.concurrent])
+    deinit { }
     
-    public class Sending<T: Sendable>: Sendable {
-        
-        public typealias Container = T
-        public typealias Element = T.Element
-        
-        private var container: Container
-        
-        init(container: Container) {
-            self.container = container
-        }
-        
-        public func send(_ value: Element) throws {
-            try self.container.send(value)
-        }
-        
-        public func `throw`(_ error: Swift.Error) throws {
-            try self.container.throw(error)
-        }
-        
+    public private(set) var id = TaskIDGenerator.next()
+    
+    public private(set) var state = State<Element>.ready
+    
+    internal var condition = DispatchCondition()
+    
+    internal var observer = Observer<Element>()
+    internal lazy var options: Options<Element> = { [unowned self] in
+        return Options<Element>(task: self)
+    }()
+    
+    public init(on queue: DispatchQueue = .main,
+                _ action: @escaping (Task<Element>) -> Void) {
+        self.commonInit(on: queue, delay: nil, action)
     }
     
-    public class Waiting<T: Waitable>: Waitable {
-        
-        public typealias Container = T
-        public typealias Element = T.Element
-        
-        private var container: Container
-        
-        init(container: Container) {
-            self.container = container
-        }
-        
-        @discardableResult
-        public func wait() throws -> Element {
-            return try self.container.wait()
-        }
-        
-        @discardableResult
-        public func wait(timeout: DispatchTime) throws -> Element {
-            return try self.container.wait(timeout: timeout)
-        }
+    public init(on queue: DispatchQueue = .main,
+                delay: @autoclosure @escaping () -> DispatchTime,
+                _ action: @escaping (Task<Element>) -> Void) {
+        self.commonInit(on: queue, delay: delay, action)
     }
     
-    public enum Element<Element> {
-        case value(Element)
-        case error(Swift.Error) //???
+    public init(on queue: DispatchQueue = .main,
+                _ action: @autoclosure @escaping () throws -> Element) {
+        self.commonInit(on: queue, delay: nil, action)
+    }
+    
+    public init(on queue: DispatchQueue = .main,
+                delay: @autoclosure @escaping () -> DispatchTime,
+                _ action: @autoclosure @escaping () throws -> Element) {
+        self.commonInit(on: queue, delay: delay, action)
+    }
+    
+    public init(on queue: DispatchQueue = .main,
+                state: State<Element>) {
+        self.state = state
+        self.commonInit(queue: queue)
+    }
+    
+    public init(on queue: DispatchQueue = .main) {
+        self.commonInit(queue: queue)
+    }
+    
+    private func commonInit(queue: DispatchQueue) {
+        self.commonInit()
+        self.options.start = Options<Element>
+            .StartHandler(queue: queue,
+                          delay: nil,
+                          action: { _ in })
+        
+        self.start()
+    }
+    
+    private func commonInit() { }
+    
+    private func commonInit(on queue: DispatchQueue,
+                            delay: (() -> DispatchTime)?,
+                            _ action: @escaping (Task<Element>) -> Void) {
+        self.commonInit()
+        self.options.start = Options<Element>.StartHandler(
+            queue: queue,
+            delay: delay,
+            action: action)
+        
+        self.start()
+    }
+    
+    private func commonInit(on queue: DispatchQueue,
+                            delay: (() -> DispatchTime)?,
+                            _ action: @autoclosure @escaping () throws -> Element) {
+        self.commonInit()
+        self.options.start = Options<Element>.StartHandler(
+            queue: queue,
+            delay: delay) { task in
+                do {
+                    let value = try action()
+                    task.send(value)
+                } catch {
+                    task.throw(error)
+                }
+        }
+        
+        self.start()
+    }
+    
+    private func start() {
+        guard case .ready = self.state else {
+            self.updateState(to: self.state)
+            return
+        }
+        self.options.start?.perform(with: self)
+    }
+    
+    fileprivate func updateState(to state: State<Element>) {
+        (self.options.start?.queue ?? .main).async {
+            self.state = state
+            guard let result = self.state.result else {
+                return
+            }
+            
+            switch result {
+            case .some(let value):
+                self.options.done?.perform(with: value)
+            case .error(let error):
+                guard !self.options.recover(from: error) else { return }
+                self.options.error?.perform(with: error)
+            }
+            
+            self.options.always?.perform(with: result)
+            
+            defer {
+                self.options.clear()
+            }
+            
+            self.observer.fire(with: result) {
+                self.observer.clear()
+            }
+        }
     }
 }
+
+extension Task {
+    
+    public func send(_ value: Element) {
+        self.updateState(to: .finished(value))
+    }
+    
+    public func `throw`(_ error: Swift.Error) {
+        self.updateState(to: .error(error))
+    }
+    
+}
+
+

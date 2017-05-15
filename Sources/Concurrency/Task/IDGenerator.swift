@@ -22,8 +22,9 @@ public class IDGenerator {
         self.mutex.lock()
         defer { self.mutex.unlock() }
         let id = "\(self.key)-\(self.index)"
-        if self.index == Int.max {
+        if self.index >= Int.max {
             self.index = 0
+            self.key += "_"
         } else {
             self.index += 1
         }
