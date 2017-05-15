@@ -31,7 +31,7 @@ public extension Task {
                     }
         }
         
-        self.condition.mutex.in {
+        self.mutex.in {
             self.observer.add(handler: handler)
         }
         self.update()

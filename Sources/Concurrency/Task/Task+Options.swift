@@ -49,7 +49,7 @@ public extension Task {
     
     @discardableResult
     public func recover(_ action: @escaping (Swift.Error) throws -> Element) -> Self {
-        self.condition.mutex.in {
+        self.mutex.in {
             self.options.recover = action
         }
         self.update()
@@ -62,7 +62,7 @@ public extension Task {
     @discardableResult
     public func done(on queue: DispatchQueue = .task,
                      _ action: @escaping (Element) -> Void) -> Self {
-        self.condition.mutex.in {
+        self.mutex.in {
             self.options.done = Options<Element>
                 .DoneHandler(
                     queue: queue,
@@ -77,7 +77,7 @@ public extension Task {
     public func done(on queue: DispatchQueue = .task,
                      delay: @autoclosure @escaping () -> DispatchTime,
                      _ action: @escaping (Element) -> Void) -> Self {
-        self.condition.mutex.in {
+        self.mutex.in {
             self.options.done = Options<Element>
                 .DoneHandler(
                     queue: queue,
@@ -91,7 +91,7 @@ public extension Task {
     @discardableResult
     public func always(on queue: DispatchQueue = .task,
                        _ action: @escaping (Result<Element>) -> Void) -> Self {
-        self.condition.mutex.in {
+        self.mutex.in {
             self.options.always = Options<Element>
                 .AlwaysHandler(
                     queue: queue,
@@ -106,7 +106,7 @@ public extension Task {
     public func always(on queue: DispatchQueue = .task,
                        delay: @autoclosure @escaping () -> DispatchTime,
                        _ action: @escaping (Result<Element>) -> Void) -> Self {
-        self.condition.mutex.in {
+        self.mutex.in {
             self.options.always = Options<Element>
                 .AlwaysHandler(
                     queue: queue,
@@ -120,7 +120,7 @@ public extension Task {
     @discardableResult
     public func `catch`(on queue: DispatchQueue = .task,
                         _ action: @escaping (Swift.Error) -> Void) -> Self {
-        self.condition.mutex.in {
+        self.mutex.in {
             self.options.error = Options<Element>
                 .ErrorHandler(
                     queue: queue,
@@ -135,7 +135,7 @@ public extension Task {
     public func `catch`(on queue: DispatchQueue = .task,
                         delay: @autoclosure @escaping () -> DispatchTime,
                         _ action: @escaping (Swift.Error) -> Void) -> Self {
-        self.condition.mutex.in {
+        self.mutex.in {
             self.options.error = Options<Element>
                 .ErrorHandler(
                     queue: queue,

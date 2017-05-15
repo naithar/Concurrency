@@ -6,7 +6,7 @@
 //
 //
 
-import Dispatch
+@_exported import Dispatch
 
 fileprivate let TaskIDGenerator = IDGenerator(key: "task.id")
 
@@ -19,7 +19,7 @@ public class Task<Element> {
     
     public private(set) var state = State<Element>.ready
     
-    internal var condition = DispatchCondition()
+    internal var mutex = DispatchMutex()
     
     internal var observer = Observer<Element>()
     internal lazy var options: Options<Element> = Options<Element>()
@@ -115,8 +115,8 @@ public class Task<Element> {
     
     fileprivate func updateState(to state: State<Element>) {
         (self.options.start?.queue ?? .task).async {
-            self.condition.mutex.lock()
-            defer { self.condition.mutex.unlock() }
+            self.mutex.lock()
+            defer { self.mutex.unlock() }
             
             self.state = state
             guard let result = self.state.result else {
