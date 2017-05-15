@@ -14,9 +14,9 @@ extension Task {
         case convertationError
     }
     
-    func `as`<T>(_ type: T.Type) -> Task<T> {
+    func `as`<T>(_ type: T.Type, conversion: ((Element) -> T?)? = nil) -> Task<T> {
         return self.then {
-            guard let new = $0 as? T else {
+            guard let new = conversion?($0) ?? $0 as? T else {
                 throw Error.convertationError
             }
             
