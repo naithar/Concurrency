@@ -1,6 +1,6 @@
 import XCTest
-@testable import SwiftAsyncTests
+@testable import ConcurrencyTests
 
 XCTMain([
-     testCase(SwiftAsyncTests.allTests),
+     testCase(ConcurrencyTests.allTests),
 ])

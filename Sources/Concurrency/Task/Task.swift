@@ -36,13 +36,13 @@ public class Task<Element> {
     }
     
     public init(on queue: DispatchQueue = .task,
-                _ action: @autoclosure @escaping () throws -> Element) {
+                value action: @autoclosure @escaping () throws -> Element) {
         self.commonInit(on: queue, delay: nil, action)
     }
     
     public init(on queue: DispatchQueue = .task,
                 delay: @autoclosure @escaping () -> DispatchTime,
-                _ action: @autoclosure @escaping () throws -> Element) {
+                value action: @autoclosure @escaping () throws -> Element) {
         self.commonInit(on: queue, delay: delay, action)
     }
     
@@ -55,6 +55,7 @@ public class Task<Element> {
     public init(on queue: DispatchQueue = .task) {
         self.commonInit(queue: queue)
     }
+    
     
     private func commonInit(queue: DispatchQueue) {
         self.commonInit()
@@ -114,6 +115,9 @@ public class Task<Element> {
     
     fileprivate func updateState(to state: State<Element>) {
         (self.options.start?.queue ?? .task).async {
+            self.condition.mutex.lock()
+            defer { self.condition.mutex.unlock() }
+            
             self.state = state
             guard let result = self.state.result else {
                 return
