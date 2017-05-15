@@ -27,7 +27,7 @@ extension Task {
 
 func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     let newTask = Task<[T]>()
-    var (total, array) = (tasks.count, [T]())
+    var (total, count) = (tasks.count, 0)
     
     guard tasks.count > 0 else {
         newTask.send([])
@@ -38,9 +38,9 @@ func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
         task
             .done { value in
                 DispatchQueue.barrier.sync {
-                    array.append(value)
-                    if total == array.count {
-                        newTask.send(array)
+                    count += 1
+                    if total == count {
+                        newTask.send(tasks.flatMap { $0.state.result?.value })
                     }
                 }
             }
