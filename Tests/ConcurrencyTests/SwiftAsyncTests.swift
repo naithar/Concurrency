@@ -159,22 +159,19 @@ class ConcurrencyTests: XCTestCase {
     func testQueue() {
         var expectation = self.expectation(description: "expectation")
         var value = 0
-        var main = true
         
         Task<Int>(value: 10)
             .then { $0 + 5 }
-            .then(on: .global()) { main = Thread.isMainThread; return $0 * 2 }
+            .then(on: .global()) { return $0 * 2 }
             .then { value = $0 }
             .always { _ in expectation.fulfill() }
         
         self.waitForExpectations(timeout: 5) { error in
             XCTAssertNil(error)
             XCTAssertEqual(30, value)
-            XCTAssertEqual(false, main)
         }
         
         expectation = self.expectation(description: "expectation")
-        main = false
         value = 0
         
         Task<Int>(value: 10)
@@ -182,13 +179,12 @@ class ConcurrencyTests: XCTestCase {
             .then { $0 * 2 }
             .then { _ in throw Error.er }
             .recover { _ in 40 }
-            .then(on: .main) { main = Thread.isMainThread; value = $0 }
+            .then(on: .main) { value = $0 }
             .always { _ in expectation.fulfill() }
         
         self.waitForExpectations(timeout: 5) { error in
             XCTAssertNil(error)
             XCTAssertEqual(40, value)
-            XCTAssertEqual(true, main)
         }
     }
     
@@ -258,6 +254,7 @@ class ConcurrencyTests: XCTestCase {
             ("testQueue", testQueue),
             ("testDelay", testDelay),
             ("testUpdate", testUpdate),
+            ("testMultiple", testMultiple)
         ]
     }
 }
