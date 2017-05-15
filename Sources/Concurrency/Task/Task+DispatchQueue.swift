@@ -11,5 +11,6 @@ import Dispatch
 public extension DispatchQueue {
     
     static let task = DispatchQueue(label: "concurrency.task.queue", attributes: [.concurrent])
-    static let instant = DispatchQueue(label: "concurrency.task.queue.instant", attributes: [])
+    
+    static let barrier = DispatchQueue(label: "concurrency.task.queue.barrier", attributes: [.concurrent])
 }
