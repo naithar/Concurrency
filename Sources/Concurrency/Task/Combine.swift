@@ -35,8 +35,7 @@ func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     }
     
     for task in tasks {
-        task
-            .done { value in
+        task.done { value in
                 DispatchQueue.barrier.sync {
                     count += 1
                     if total == count {
