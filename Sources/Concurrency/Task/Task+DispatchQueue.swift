@@ -6,7 +6,10 @@
 //
 //
 
-extension DispatchQueue {
+import Dispatch
+
+public extension DispatchQueue {
     
     static let task = DispatchQueue(label: "concurrency.task.queue", attributes: .concurrent)
+    static let instant = DispatchQueue(label: "concurrency.task.queue.instant", attributes: [])
 }

@@ -171,13 +171,32 @@ class SwiftAsyncTests: XCTestCase {
         let expectation = self.expectation(description: "expectation")
         var value = 0
         
+        let delay = DispatchTime.now() + 2
         Task<Int>(10)
-            .then(delay: .now() + 3) { $0 * 2 }
+            .then(delay: delay) { $0 * 2 }
             .done { value = $0 }
             .always { _ in expectation.fulfill() }
         
         self.wait(for: [expectation], timeout: 5)
         XCTAssertEqual(20, value)
+    }
+    
+    func testUpdate() {
+        let expectation = self.expectation(description: "expectation")
+        var value = 0
+        
+        let task = Task<Int>(10)
+            .then(delay: .now() + 3) { $0 * 2 }
+            
+        DispatchQueue.global().async {
+            task.then { $0 * 2 }
+                .then { $0 + 5 }
+                .done { value = $0 }
+                .always { _ in expectation.fulfill() }
+        }
+        
+        self.wait(for: [expectation], timeout: 6)
+        XCTAssertEqual(45, value)
     }
     
     static var allTests : [(String, (SwiftAsyncTests) -> () throws -> Void)] {
@@ -191,6 +210,7 @@ class SwiftAsyncTests: XCTestCase {
             ("testChain", testChain),
             ("testQueue", testQueue),
             ("testDelay", testDelay),
+            ("testUpdate", testUpdate),
         ]
     }
 }

@@ -16,7 +16,7 @@ extension DispatchTime {
             return 0
         }
         let timeDelta = self.rawValue - now.rawValue
-        let interval = timeDelta / NSEC_PER_MSEC
+        let interval = timeDelta / 1000000/*NSEC_PER_MSEC*/
         return Int(interval)
     }
 }

@@ -10,12 +10,6 @@ import Dispatch
 
 public struct Options<Element> {
     
-    private var task: Task<Element>?
-    
-    init(task: Task<Element>) {
-        self.task = task
-    }
-    
     typealias StartHandler = Runnable<Task<Element>>
     typealias DoneHandler = Runnable<Element>
     typealias ErrorHandler = Runnable<Swift.Error>
@@ -25,8 +19,7 @@ public struct Options<Element> {
     
     var recover: ((Swift.Error) throws -> Element)?
     
-    mutating func recover(from error: Swift.Error) -> Bool {
-        guard let task = self.task else { return false }
+    mutating func recover(from error: Swift.Error, at task: Task<Element>) -> Bool {
         defer { self.recover = nil }
         guard let action = self.recover else { return false }
         
@@ -45,7 +38,6 @@ public struct Options<Element> {
     var always: AlwaysHandler?
     
     mutating func clear() {
-        self.task = nil
         self.done = nil
         self.recover = nil
         self.error = nil
@@ -53,30 +45,32 @@ public struct Options<Element> {
     }
 }
 
-extension Task {
+public extension Task {
     
     @discardableResult
     public func recover(_ action: @escaping (Swift.Error) throws -> Element) -> Self {
         self.options.recover = action
+        self.update()
         return self
     }
 }
 
-extension Task {
+public extension Task {
     
     @discardableResult
-    public func done(on queue: DispatchQueue = .main,
+    public func done(on queue: DispatchQueue = .task,
                      _ action: @escaping (Element) -> Void) -> Self {
         self.options.done = Options<Element>
             .DoneHandler(
                 queue: queue,
                 delay: nil,
                 action: action)
+        self.update()
         return self
     }
     
     @discardableResult
-    public func done(on queue: DispatchQueue = .main,
+    public func done(on queue: DispatchQueue = .task,
                      delay: @autoclosure @escaping () -> DispatchTime,
                      _ action: @escaping (Element) -> Void) -> Self {
         self.options.done = Options<Element>
@@ -84,22 +78,24 @@ extension Task {
                 queue: queue,
                 delay: delay,
                 action: action)
+        self.update()
         return self
     }
     
     @discardableResult
-    public func always(on queue: DispatchQueue = .main,
+    public func always(on queue: DispatchQueue = .task,
                        _ action: @escaping (Result<Element>) -> Void) -> Self {
         self.options.always = Options<Element>
             .AlwaysHandler(
                 queue: queue,
                 delay: nil,
                 action: action)
+        self.update()
         return self
     }
     
     @discardableResult
-    public func always(on queue: DispatchQueue = .main,
+    public func always(on queue: DispatchQueue = .task,
                        delay: @autoclosure @escaping () -> DispatchTime,
                        _ action: @escaping (Result<Element>) -> Void) -> Self {
         self.options.always = Options<Element>
@@ -107,22 +103,24 @@ extension Task {
                 queue: queue,
                 delay: delay,
                 action: action)
+        self.update()
         return self
     }
     
     @discardableResult
-    public func `catch`(on queue: DispatchQueue = .main,
+    public func `catch`(on queue: DispatchQueue = .task,
                         _ action: @escaping (Swift.Error) -> Void) -> Self {
         self.options.error = Options<Element>
             .ErrorHandler(
                 queue: queue,
                 delay: nil,
                 action: action)
+        self.update()
         return self
     }
     
     @discardableResult
-    public func `catch`(on queue: DispatchQueue = .main,
+    public func `catch`(on queue: DispatchQueue = .task,
                         delay: @autoclosure @escaping () -> DispatchTime,
                         _ action: @escaping (Swift.Error) -> Void) -> Self {
         self.options.error = Options<Element>
@@ -130,6 +128,7 @@ extension Task {
                 queue: queue,
                 delay: delay,
                 action: action)
+        self.update()
         return self
     }
 }

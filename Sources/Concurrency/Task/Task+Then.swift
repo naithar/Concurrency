@@ -6,7 +6,9 @@
 //
 //
 
-extension Task {
+import Dispatch
+
+public extension Task {
     
     private func observe<Result>(on queue: DispatchQueue,
                          delay: (() -> DispatchTime)?,
@@ -30,10 +32,11 @@ extension Task {
         }
         
         self.observer.add(handler: handler)
+        self.update()
     }
     
     @discardableResult
-    public func then<Result>(on queue: DispatchQueue = .main,
+    public func then<Result>(on queue: DispatchQueue = .task,
                      _ action: @escaping (Element) throws -> Result) -> Task<Result> {
         let newTask = Task<Result>()
         
@@ -46,7 +49,7 @@ extension Task {
     }
     
     @discardableResult
-    public func then<Result>(on queue: DispatchQueue = .main,
+    public func then<Result>(on queue: DispatchQueue = .task,
                      delay: @autoclosure @escaping () -> DispatchTime,
                      _ action: @escaping (Element) throws -> Result) -> Task<Result> {
         let newTask = Task<Result>()

@@ -6,9 +6,10 @@
 //
 //
 
-@_exported import Dispatch
+import Dispatch
 
 fileprivate let TaskIDGenerator = IDGenerator(key: "task.id")
+
 
 public class Task<Element> {
     
@@ -21,39 +22,37 @@ public class Task<Element> {
     internal var condition = DispatchCondition()
     
     internal var observer = Observer<Element>()
-    internal lazy var options: Options<Element> = { [unowned self] in
-        return Options<Element>(task: self)
-    }()
+    internal lazy var options: Options<Element> = Options<Element>()
     
-    public init(on queue: DispatchQueue = .main,
+    public init(on queue: DispatchQueue = .task,
                 _ action: @escaping (Task<Element>) -> Void) {
         self.commonInit(on: queue, delay: nil, action)
     }
     
-    public init(on queue: DispatchQueue = .main,
+    public init(on queue: DispatchQueue = .task,
                 delay: @autoclosure @escaping () -> DispatchTime,
                 _ action: @escaping (Task<Element>) -> Void) {
         self.commonInit(on: queue, delay: delay, action)
     }
     
-    public init(on queue: DispatchQueue = .main,
+    public init(on queue: DispatchQueue = .task,
                 _ action: @autoclosure @escaping () throws -> Element) {
         self.commonInit(on: queue, delay: nil, action)
     }
     
-    public init(on queue: DispatchQueue = .main,
+    public init(on queue: DispatchQueue = .task,
                 delay: @autoclosure @escaping () -> DispatchTime,
                 _ action: @autoclosure @escaping () throws -> Element) {
         self.commonInit(on: queue, delay: delay, action)
     }
     
-    public init(on queue: DispatchQueue = .main,
+    public init(on queue: DispatchQueue = .task,
                 state: State<Element>) {
         self.state = state
         self.commonInit(queue: queue)
     }
     
-    public init(on queue: DispatchQueue = .main) {
+    public init(on queue: DispatchQueue = .task) {
         self.commonInit(queue: queue)
     }
     
@@ -107,8 +106,14 @@ public class Task<Element> {
         self.options.start?.perform(with: self)
     }
     
+    func update() {
+        if case .ready = self.state { return }
+        
+        self.updateState(to: self.state)
+    }
+    
     fileprivate func updateState(to state: State<Element>) {
-        (self.options.start?.queue ?? .main).async {
+        (self.options.start?.queue ?? .task).async {
             self.state = state
             guard let result = self.state.result else {
                 return
@@ -118,7 +123,7 @@ public class Task<Element> {
             case .some(let value):
                 self.options.done?.perform(with: value)
             case .error(let error):
-                guard !self.options.recover(from: error) else { return }
+                guard !self.options.recover(from: error, at: self) else { return }
                 self.options.error?.perform(with: error)
             }
             
@@ -133,9 +138,6 @@ public class Task<Element> {
             }
         }
     }
-}
-
-extension Task {
     
     public func send(_ value: Element) {
         self.updateState(to: .finished(value))
