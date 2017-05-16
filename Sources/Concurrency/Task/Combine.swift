@@ -10,10 +10,6 @@ import Foundation
 
 extension Task {
     
-    enum Error: Swift.Error {
-        case convertationError
-    }
-    
     func `as`<T>(_ type: T.Type, _ convert: ((Element) -> T?)? = nil) -> Task<T> {
         if T.self == Void.self {
             return self.then { _ in () as! T }
@@ -21,7 +17,7 @@ extension Task {
         
         return self.then {
             guard let new = convert?($0) ?? $0 as? T else {
-                throw Error.convertationError
+                throw TaskError.convertationError
             }
             
             return new

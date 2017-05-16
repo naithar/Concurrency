@@ -25,7 +25,7 @@ public class Task<T>: Taskable {
     
     public private(set) var state = State<Element>.ready
     
-    internal var mutex = DispatchMutex()
+    internal var condition = DispatchCondition()
     
     internal var observer = Observer<Element>()
     internal lazy var options: Options<Element> = Options<Element>()
@@ -121,8 +121,11 @@ public class Task<T>: Taskable {
     
     fileprivate func updateState(to state: State<Element>) {
         (self.options.start?.queue ?? .task).async {
-            self.mutex.lock()
-            defer { self.mutex.unlock() }
+            self.condition.mutex.lock()
+            defer {
+                self.condition.broadcast()
+                self.condition.mutex.unlock()
+            }
             
             self.state = state
             guard let result = self.state.result else {

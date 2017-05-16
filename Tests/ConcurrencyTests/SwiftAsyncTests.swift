@@ -242,6 +242,51 @@ class ConcurrencyTests: XCTestCase {
         }
     }
     
+    func testWait() {
+        var value = try? Task<Int>(value: 10)
+            .then { $0 * 2 }
+            .then { $0 + 5 }
+            .wait()
+    
+        XCTAssertEqual(25, value)
+        
+        value = try? Task<Int>(value: 10)
+            .then { $0 * 2 }
+            .then(delay: .now() + 10) { $0 + 5 }
+            .wait()
+        
+        XCTAssertEqual(25, value)
+    }
+    
+    func testWaitTimeout() {
+        var value = try? Task<Int>(value: 10)
+            .then { $0 * 2 }
+            .then(delay: .now() + 5) { $0 + 5 }
+            .wait(for: .now() + .seconds(10))
+
+        XCTAssertEqual(25, value)
+
+        value = 0
+
+        do {
+            value = try Task<Int>(value: 10)
+            .then { $0 * 2 }
+            .then(delay: .now() + 5) { $0 + 5 }
+            .wait(for: .now() + .seconds(1))
+
+            XCTFail("should throw")
+        } catch {
+            switch error {
+            case let error as TaskError where error == .timeout:
+                XCTAssertTrue(true)
+            default:
+                XCTFail("wrong error")
+            }
+        }
+
+        XCTAssertEqual(0, value)
+    }
+    
     static var allTests : [(String, (ConcurrencyTests) -> () throws -> Void)] {
         return [
             ("testSend", testSend),
@@ -254,7 +299,9 @@ class ConcurrencyTests: XCTestCase {
             ("testQueue", testQueue),
             ("testDelay", testDelay),
             ("testUpdate", testUpdate),
-            ("testMultiple", testMultiple)
+            ("testMultiple", testMultiple),
+            ("testWait", testWait),
+            ("testWaitTimeout", testWaitTimeout),
         ]
     }
 }
