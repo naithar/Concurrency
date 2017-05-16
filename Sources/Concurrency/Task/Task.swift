@@ -119,7 +119,7 @@ public class Task<T>: Taskable {
         self.updateState(to: self.state)
     }
     
-    private func updateState(to state: State<Element>) {
+    fileprivate func updateState(to state: State<Element>) {
         (self.options.start?.queue ?? .task).async {
             self.condition.mutex.lock()
             defer {
