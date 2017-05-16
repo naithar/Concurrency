@@ -287,6 +287,52 @@ class ConcurrencyTests: XCTestCase {
         XCTAssertEqual(0, value)
     }
     
+    func testCombine() {
+        let expectation = self.expectation(description: "e")
+        let intTask = Task<Int>()
+        let stringTask = Task<String>()
+        let boolTask = Task<Bool>()
+        var result = [Any]()
+        
+        [intTask.as(Any.self), stringTask.as(Any.self), boolTask.as(Any.self)]
+            .combine()
+            .done { result = $0 }
+            .always { _ in expectation.fulfill() }
+
+        intTask.send(10)
+        stringTask.send("task string")
+        boolTask.send(true)
+        
+        self.waitForExpectations(timeout: 5) { error in
+            XCTAssertNil(error)
+            XCTAssertEqual(3, result.count)
+            guard result.count == 3 else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(10, result[0] as? Int)
+            XCTAssertEqual("task string", result[1] as? String)
+            XCTAssertEqual(true, result[2] as? Bool)
+        }
+    }
+    
+    func testMapReduce() {
+        let task = Task<[Any]>(value: [10, 30, "ss", true, "aa"])
+        
+        
+        let filterArray = try? task.filter { $0 is String }.wait()
+        XCTAssertEqual(["ss", "aa"], (filterArray ?? []).flatMap { $0 as? String })
+        
+        let mapArray = try? task.map { String.init(describing: $0) }.wait()
+        XCTAssertEqual(["10", "30", "ss", "true", "aa"], mapArray ?? [])
+        
+        let flatMapArray = try? task.flatMap { $0 as? String }.wait()
+        XCTAssertEqual(["ss", "aa"], (flatMapArray ?? []))
+        
+        let reduce = try? task.reduce(0) { $0 + (($1 as? Int) ?? 1) }.wait()
+        XCTAssertEqual(43, reduce)
+    }
+    
     static var allTests : [(String, (ConcurrencyTests) -> () throws -> Void)] {
         return [
             ("testSend", testSend),
@@ -302,6 +348,7 @@ class ConcurrencyTests: XCTestCase {
             ("testMultiple", testMultiple),
             ("testWait", testWait),
             ("testWaitTimeout", testWaitTimeout),
+            ("testCombine", testCombine)
         ]
     }
 }
