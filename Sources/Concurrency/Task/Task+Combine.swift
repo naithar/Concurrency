@@ -8,9 +8,9 @@
 
 import Foundation
 
-extension Task {
+public extension Task {
     
-    func `as`<T>(_ type: T.Type, _ convert: ((Element) -> T?)? = nil) -> Task<T> {
+    public func `as`<T>(_ type: T.Type, _ convert: ((Element) -> T?)? = nil) -> Task<T> {
         if T.self == Void.self {
             return self.then { _ in () as! T }
         }
@@ -25,7 +25,7 @@ extension Task {
     }
 }
 
-func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
+public func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     let newTask = Task<[T]>()
     var (total, count) = (tasks.count, 0)
     
@@ -55,7 +55,7 @@ func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
 
 extension Array where Element: Taskable {
 
-    func combine() -> Task<[Element.Element]> {
+    public func combine() -> Task<[Element.Element]> {
         return Concurrency.combine(tasks: self.flatMap { $0 as? Task<Element.Element> })
     }
 }
