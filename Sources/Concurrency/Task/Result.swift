@@ -10,7 +10,7 @@ public enum Result<Element> {
     case some(Element)
     case error(Swift.Error)
     
-    var value: Element? {
+    public var value: Element? {
         switch self {
         case .some(let element):
             return element

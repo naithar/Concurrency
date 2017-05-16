@@ -8,21 +8,21 @@
 
 extension Task where Element: Sequence {
     
-    typealias ArrayElement = Element.Iterator.Element
+    public typealias ArrayElement = Element.Iterator.Element
     
-    func map<U>(_ transform: @escaping (ArrayElement) throws -> U) -> Task<[U]> {
+    public func map<U>(_ transform: @escaping (ArrayElement) throws -> U) -> Task<[U]> {
         return self.then { array in
             return try array.map { try transform($0) }
         }
     }
     
-    func flatMap<U>(_ transform: @escaping (ArrayElement) throws -> U?) -> Task<[U]> {
+    public func flatMap<U>(_ transform: @escaping (ArrayElement) throws -> U?) -> Task<[U]> {
         return self.then { array in
             return try array.flatMap { try transform($0) }
         }
     }
     
-    func reduce<Result>(_ initial: Result,
+    public func reduce<Result>(_ initial: Result,
                 _ transform: @escaping (Result, ArrayElement) throws -> Result) -> Task<Result> {
         return self.then { array in
             return try array.reduce(initial, transform)
@@ -30,7 +30,7 @@ extension Task where Element: Sequence {
         
     }
     
-    func filter(_ isIncluded: @escaping (ArrayElement) throws -> Bool) -> Task<[ArrayElement]> {
+    public func filter(_ isIncluded: @escaping (ArrayElement) throws -> Bool) -> Task<[ArrayElement]> {
         return self.then { array in
             return try array.filter(isIncluded)
         }

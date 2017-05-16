@@ -113,13 +113,13 @@ public class Task<T>: Taskable {
         self.options.start?.perform(with: self)
     }
     
-    func update() {
+    internal func update() {
         if case .ready = self.state { return }
         
         self.updateState(to: self.state)
     }
     
-    fileprivate func updateState(to state: State<Element>) {
+    private func updateState(to state: State<Element>) {
         (self.options.start?.queue ?? .task).async {
             self.condition.mutex.lock()
             defer {
@@ -151,6 +151,9 @@ public class Task<T>: Taskable {
             }
         }
     }
+}
+
+public extension Task {
     
     public func send(_ value: Element) {
         self.updateState(to: .finished(value))
@@ -159,7 +162,6 @@ public class Task<T>: Taskable {
     public func `throw`(_ error: Swift.Error) {
         self.updateState(to: .error(error))
     }
-    
 }
 
 

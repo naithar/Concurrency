@@ -11,7 +11,7 @@ public enum State<Element> {
     case finished(Element)
     case error(Swift.Error)
     
-    var result: Result<Element>? {
+    public var result: Result<Element>? {
         switch self {
         case .finished(let value):
             return Result<Element>.some(value)

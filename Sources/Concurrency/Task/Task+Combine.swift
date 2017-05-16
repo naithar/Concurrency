@@ -53,7 +53,7 @@ public func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     return newTask
 }
 
-extension Array where Element: Taskable {
+public extension Array where Element: Taskable {
 
     public func combine() -> Task<[Element.Element]> {
         return Concurrency.combine(tasks: self.flatMap { $0 as? Task<Element.Element> })

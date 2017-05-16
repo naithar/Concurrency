@@ -6,9 +6,8 @@
 //
 //
 
-enum TaskError: Swift.Error {
+public enum TaskError: Swift.Error {
     
     case timeout
     case convertationError
-    
 }

@@ -10,7 +10,7 @@ import Dispatch
 
 public extension DispatchQueue {
     
-    static let task = DispatchQueue(label: "concurrency.task.queue", attributes: [.concurrent])
+    public static let task = DispatchQueue(label: "concurrency.task.queue", attributes: [.concurrent])
     
-    static let barrier = DispatchQueue(label: "concurrency.task.queue.barrier", attributes: [.concurrent])
+    public static let barrier = DispatchQueue(label: "concurrency.task.queue.barrier", attributes: [.concurrent])
 }
