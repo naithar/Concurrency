@@ -291,10 +291,10 @@ class ConcurrencyTests: XCTestCase {
     }
     
     func testCombine() {
-        let expectation = self.expectation(description: "e")
-        let intTask = Task<Int>()
-        let stringTask = Task<String>()
-        let boolTask = Task<Bool>()
+        var expectation = self.expectation(description: "e")
+        var intTask = Task<Int>()
+        var stringTask = Task<String>()
+        var boolTask = Task<Bool>()
         var result = [Any]()
         
         [intTask.as(Any.self), stringTask.as(Any.self), boolTask.as(Any.self)]
@@ -316,6 +316,27 @@ class ConcurrencyTests: XCTestCase {
             XCTAssertEqual(10, result[0] as? Int)
             XCTAssertEqual("task string", result[1] as? String)
             XCTAssertEqual(true, result[2] as? Bool)
+        }
+        
+        expectation = self.expectation(description: "e")
+        intTask = Task<Int>()
+        stringTask = Task<String>()
+        boolTask = Task<Bool>()
+        result = [Any]()
+        
+        [intTask.as(Any.self), stringTask.as(Any.self), boolTask.as(Any.self)]
+            .combine()
+            .done { result = $0 }
+            .always { _ in expectation.fulfill() }
+        
+        
+        intTask.send(10)
+        stringTask.throw(Error.er)
+        boolTask.send(true)
+        
+        self.waitForExpectations(timeout: 5) { error in
+            XCTAssertNil(error)
+            XCTAssertEqual(0, result.count)
         }
     }
     
