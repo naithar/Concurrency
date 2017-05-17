@@ -15,6 +15,8 @@ public protocol Taskable {
     associatedtype Element
 }
 
+public let yield: Void = { return }()
+
 public class Task<T>: Taskable {
     
     public typealias Element = T

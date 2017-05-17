@@ -64,3 +64,52 @@ public extension Task {
         return newTask
     }
 }
+
+public extension Task where Element: Taskable {
+    
+    public typealias TaskElement = Element.Element
+    
+    private func unwrap(to newTask: Task<TaskElement>,
+                        on queue: DispatchQueue,
+                        delay: (() -> DispatchTime)?) {
+        
+        func unwrap<T: Taskable>(from task: T) {
+            guard let task = task as? Task<TaskElement> else {
+                newTask.throw(TaskError.unwrapError)
+                return
+            }
+            
+            task.done { newTask.send($0) }
+                .catch { newTask.throw($0) }
+        }
+        
+        if let delay = delay {
+            self.then(on: queue, delay: delay()) { actualTask in
+                unwrap(from: actualTask)
+            }
+        } else {
+            self.then(on: queue) { actualTask in
+                unwrap(from: actualTask)
+            }
+        }
+    }
+    
+    @discardableResult
+    public func unwrap(on queue: DispatchQueue = .task) -> Task<TaskElement> {
+        let newTask = Task<TaskElement>()
+        
+        self.unwrap(to: newTask, on: queue, delay: nil)
+        
+        return newTask
+    }
+    
+    @discardableResult
+    public func unwrap(on queue: DispatchQueue = .task,
+                       delay: @autoclosure @escaping () -> DispatchTime) -> Task<TaskElement> {
+        let newTask = Task<TaskElement>()
+        
+        self.unwrap(to: newTask, on: queue, delay: nil)
+        
+        return newTask
+    }
+}

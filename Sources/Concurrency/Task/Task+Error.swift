@@ -10,4 +10,5 @@ public enum TaskError: Swift.Error {
     
     case timeout
     case convertationError
+    case unwrapError
 }
