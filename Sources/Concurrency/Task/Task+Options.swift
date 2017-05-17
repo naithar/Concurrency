@@ -19,18 +19,16 @@ public struct Options<Element> {
     
     var recover: ((Swift.Error) throws -> Element)?
     
-    mutating func recover(from error: Swift.Error, at task: Task<Element>) -> Bool {
+    mutating func recover(from error: Swift.Error, at task: Task<Element>) -> State<Element>? {
         defer { self.recover = nil }
-        guard let action = self.recover else { return false }
+        guard let action = self.recover else { return nil }
         
         do {
             let value = try action(error)
-            task.send(value)
+            return .finished(value)
         } catch {
-            task.throw(error)
+            return .error(error)
         }
-        
-        return true
     }
     
     var done: DoneHandler?

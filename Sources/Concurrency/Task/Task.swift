@@ -128,23 +128,27 @@ public class Task<T>: Taskable {
             }
             
             self.state = state
-            guard let result = self.state.result else {
+            guard var result = self.state.result else {
                 return
+            }
+            
+            defer {
+                self.options.clear()
             }
             
             switch result {
             case .some(let value):
                 self.options.done?.perform(with: value)
             case .error(let error):
-                guard !self.options.recover(from: error, at: self) else { return }
                 self.options.error?.perform(with: error)
+                if let newState = self.options.recover(from: error, at: self),
+                    let newResult = newState.result {
+                    self.state = newState
+                    result = newResult
+                }
             }
             
             self.options.always?.perform(with: result)
-            
-            defer {
-                self.options.clear()
-            }
             
             self.observer.fire(with: result) {
                 self.observer.clear()

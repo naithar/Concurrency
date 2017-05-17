@@ -48,9 +48,12 @@ class ConcurrencyTests: XCTestCase {
         var value = 0
         
         var task = Task<Int>()
+            .recover { _ in return 10 }
+            
+            
+        task.then { $0 }
             .done { value = $0 * 2 }
             .catch { taskError = $0 }
-            .recover { _ in 10 }
             .always { _ in expectation.fulfill() }
         
         task.throw(Error.er)
