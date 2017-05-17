@@ -8,18 +8,35 @@
 
 import Dispatch
 
+public struct TaskState: OptionSet {
+    
+    public var rawValue: Int
+    
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
+    
+    public static let any: TaskState = [.success, .fail]
+    public static let success = TaskState(rawValue: 1 << 1)
+    public static let fail = TaskState(rawValue: 1 << 2)
+}
+
 public extension Task {
     
-    private func observe<Result>(on queue: DispatchQueue,
+    private func observe<Result>(on state: TaskState,
+                         in queue: DispatchQueue,
                          delay: (() -> DispatchTime)?,
                          task: Task<Result>,
                          with action: @escaping (Element) throws -> Result) {
+        
+        
         let handler = Observer<Element>
             .Handler(
                 queue: queue,
                 delay: delay) { result in
                     switch result {
                     case .some(let value):
+                        guard state.contains(.success) else { return }
                         do {
                             let value = try action(value)
                             task.send(value)
@@ -27,6 +44,7 @@ public extension Task {
                             task.throw(error)
                         }
                     case .error(let error):
+                        guard state.contains(.fail) else { return }
                         task.throw(error)
                     }
         }
@@ -38,11 +56,13 @@ public extension Task {
     }
     
     @discardableResult
-    public func then<Result>(on queue: DispatchQueue = .task,
+    public func then<Result>(on state: TaskState = .any,
+                     in queue: DispatchQueue = .task,
                      _ action: @escaping (Element) throws -> Result) -> Task<Result> {
         let newTask = Task<Result>()
         
-        self.observe(on: queue,
+        self.observe(on: state,
+                     in: queue,
                      delay: nil,
                      task: newTask,
                      with: action)
@@ -51,12 +71,14 @@ public extension Task {
     }
     
     @discardableResult
-    public func then<Result>(on queue: DispatchQueue = .task,
+    public func then<Result>(on state: TaskState = .any,
+                     in queue: DispatchQueue = .task,
                      delay: @autoclosure @escaping () -> DispatchTime,
                      _ action: @escaping (Element) throws -> Result) -> Task<Result> {
         let newTask = Task<Result>()
         
-        self.observe(on: queue,
+        self.observe(on: state,
+                     in: queue,
                      delay: delay,
                      task: newTask,
                      with: action)
@@ -70,7 +92,8 @@ public extension Task where Element: Taskable {
     public typealias TaskElement = Element.Element
     
     private func unwrap(to newTask: Task<TaskElement>,
-                        on queue: DispatchQueue,
+                        on state: TaskState = .any,
+                        in queue: DispatchQueue,
                         delay: (() -> DispatchTime)?) {
         
         func unwrap<T: Taskable>(from task: T) {
@@ -79,36 +102,43 @@ public extension Task where Element: Taskable {
                 return
             }
             
-            task.done { newTask.send($0) }
-                .catch { newTask.throw($0) }
+            task
+                .done { value in
+                    guard state.contains(.success) else { return }
+                    newTask.send(value) }
+                .catch { error in
+                    guard state.contains(.fail) else { return }
+                    newTask.throw(error) }
         }
         
         if let delay = delay {
-            self.then(on: queue, delay: delay()) { actualTask in
+            self.then(in: queue, delay: delay()) { actualTask in
                 unwrap(from: actualTask)
             }
         } else {
-            self.then(on: queue) { actualTask in
+            self.then(in: queue) { actualTask in
                 unwrap(from: actualTask)
             }
         }
     }
     
     @discardableResult
-    public func unwrap(on queue: DispatchQueue = .task) -> Task<TaskElement> {
+    public func unwrap(on: TaskState = .any,
+                       in queue: DispatchQueue = .task) -> Task<TaskElement> {
         let newTask = Task<TaskElement>()
         
-        self.unwrap(to: newTask, on: queue, delay: nil)
+        self.unwrap(to: newTask, in: queue, delay: nil)
         
         return newTask
     }
     
     @discardableResult
-    public func unwrap(on queue: DispatchQueue = .task,
+    public func unwrap(on: TaskState = .any,
+                       in queue: DispatchQueue = .task,
                        delay: @autoclosure @escaping () -> DispatchTime) -> Task<TaskElement> {
         let newTask = Task<TaskElement>()
         
-        self.unwrap(to: newTask, on: queue, delay: nil)
+        self.unwrap(to: newTask, in: queue, delay: nil)
         
         return newTask
     }

@@ -165,7 +165,7 @@ class ConcurrencyTests: XCTestCase {
         
         Task<Int>(value: 10)
             .then { $0 + 5 }
-            .then(on: .global()) { return $0 * 2 }
+            .then(in: .global()) { return $0 * 2 }
             .then { value = $0 }
             .always { _ in expectation.fulfill() }
         
@@ -182,7 +182,7 @@ class ConcurrencyTests: XCTestCase {
             .then { $0 * 2 }
             .then { _ in throw Error.er }
             .recover { _ in 40 }
-            .then(on: .main) { value = $0 }
+            .then(in: .main) { value = $0 }
             .always { _ in expectation.fulfill() }
         
         self.waitForExpectations(timeout: 5) { error in
@@ -233,12 +233,12 @@ class ConcurrencyTests: XCTestCase {
         let e2 = self.expectation(description: "expectation2")
         
         
-        let task = Task<Int>(on: .main, value: 10)
-            .then(on: .main) { _ in expectation.fulfill() }
+        let task = Task<Int>(in: .main, value: 10)
+            .then(in: .main) { _ in expectation.fulfill() }
         
-        task.then(on: .main) { e1.fulfill() }
+        task.then(in: .main) { e1.fulfill() }
         
-        task.then(on: .main) { e2.fulfill() }
+        task.then(in: .main) { e2.fulfill() }
         
         self.waitForExpectations(timeout: 5) { error in
             XCTAssertNil(error)
@@ -322,7 +322,6 @@ class ConcurrencyTests: XCTestCase {
     func testMapReduce() {
         let task = Task<[Any]>(value: [10, 30, "ss", true, "aa"])
         
-        
         let filterArray = try? task.filter { $0 is String }.wait()
         XCTAssertEqual(["ss", "aa"], (filterArray ?? []).flatMap { $0 as? String })
         
@@ -353,6 +352,47 @@ class ConcurrencyTests: XCTestCase {
         self.waitForExpectations(timeout: 5) { error in
             XCTAssertNil(error)
             XCTAssertEqual(25, value)
+        }
+    }
+    
+    func testThenOnState() {
+        
+        var e = self.expectation(description: "e")
+        var value = ""
+        func foo(_ string: String) {
+            value = string
+        }
+        
+        var task = Task<Int>()
+            
+        task.then(on: .success) { _ in foo("success") }
+            .always { _ in e.fulfill() }
+        
+        task.then(on: .fail) { _ in foo("fail") }
+            .always { _ in e.fulfill() }
+        
+        task.send(10)
+        
+        self.waitForExpectations(timeout: 5) { error in
+            XCTAssertNil(error)
+            XCTAssertEqual("success", value)
+        }
+        
+        e = self.expectation(description: "e")
+        task = Task<Int>()
+            
+        task.then(on: .success) { _ in foo("success") }
+            .always { _ in e.fulfill() }
+        
+        task.then(on: .fail) { $0 }
+            .catch { _ in foo("fail") }
+            .always { _ in e.fulfill() }
+        
+        task.throw(Error.er)
+        
+        self.waitForExpectations(timeout: 5) { error in
+            XCTAssertNil(error)
+            XCTAssertEqual("fail", value)
         }
     }
     

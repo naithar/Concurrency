@@ -58,7 +58,7 @@ public extension Task {
 public extension Task {
     
     @discardableResult
-    public func done(on queue: DispatchQueue = .task,
+    public func done(in queue: DispatchQueue = .task,
                      _ action: @escaping (Element) -> Void) -> Self {
         self.condition.mutex.in {
             self.options.done = Options<Element>
@@ -72,7 +72,7 @@ public extension Task {
     }
     
     @discardableResult
-    public func done(on queue: DispatchQueue = .task,
+    public func done(in queue: DispatchQueue = .task,
                      delay: @autoclosure @escaping () -> DispatchTime,
                      _ action: @escaping (Element) -> Void) -> Self {
         self.condition.mutex.in {
@@ -87,7 +87,7 @@ public extension Task {
     }
     
     @discardableResult
-    public func always(on queue: DispatchQueue = .task,
+    public func always(in queue: DispatchQueue = .task,
                        _ action: @escaping (Result<Element>) -> Void) -> Self {
         self.condition.mutex.in {
             self.options.always = Options<Element>
@@ -101,7 +101,7 @@ public extension Task {
     }
     
     @discardableResult
-    public func always(on queue: DispatchQueue = .task,
+    public func always(in queue: DispatchQueue = .task,
                        delay: @autoclosure @escaping () -> DispatchTime,
                        _ action: @escaping (Result<Element>) -> Void) -> Self {
         self.condition.mutex.in {
@@ -116,7 +116,7 @@ public extension Task {
     }
     
     @discardableResult
-    public func `catch`(on queue: DispatchQueue = .task,
+    public func `catch`(in queue: DispatchQueue = .task,
                         _ action: @escaping (Swift.Error) -> Void) -> Self {
         self.condition.mutex.in {
             self.options.error = Options<Element>
@@ -130,7 +130,7 @@ public extension Task {
     }
     
     @discardableResult
-    public func `catch`(on queue: DispatchQueue = .task,
+    public func `catch`(in queue: DispatchQueue = .task,
                         delay: @autoclosure @escaping () -> DispatchTime,
                         _ action: @escaping (Swift.Error) -> Void) -> Self {
         self.condition.mutex.in {

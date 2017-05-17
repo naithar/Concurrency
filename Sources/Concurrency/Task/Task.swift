@@ -21,46 +21,46 @@ public class Task<T>: Taskable {
     
     public typealias Element = T
     
-    deinit { }
+    deinit { print("deinit") }
     
     public private(set) var id = TaskIDGenerator.next()
     
-    public private(set) var state = State<Element>.ready
+    public private(set) var state = Concurrency.State<Element>.ready
     
     internal var condition = DispatchCondition()
     
     internal var observer = Observer<Element>()
-    internal lazy var options: Options<Element> = Options<Element>()
+    internal lazy var options = Options<Element>()
     
-    public init(on queue: DispatchQueue = .task,
+    public init(in queue: DispatchQueue = .task,
                 _ action: @escaping (Task<Element>) -> Void) {
-        self.commonInit(on: queue, delay: nil, action)
+        self.commonInit(in: queue, delay: nil, action)
     }
     
-    public init(on queue: DispatchQueue = .task,
+    public init(in queue: DispatchQueue = .task,
                 delay: @autoclosure @escaping () -> DispatchTime,
                 _ action: @escaping (Task<Element>) -> Void) {
-        self.commonInit(on: queue, delay: delay, action)
+        self.commonInit(in: queue, delay: delay, action)
     }
     
-    public init(on queue: DispatchQueue = .task,
+    public init(in queue: DispatchQueue = .task,
                 value action: @autoclosure @escaping () throws -> Element) {
-        self.commonInit(on: queue, delay: nil, action)
+        self.commonInit(in: queue, delay: nil, action)
     }
     
-    public init(on queue: DispatchQueue = .task,
+    public init(in queue: DispatchQueue = .task,
                 delay: @autoclosure @escaping () -> DispatchTime,
                 value action: @autoclosure @escaping () throws -> Element) {
-        self.commonInit(on: queue, delay: delay, action)
+        self.commonInit(in: queue, delay: delay, action)
     }
     
-    public init(on queue: DispatchQueue = .task,
-                state: State<Element>) {
+    public init(in queue: DispatchQueue = .task,
+                state: Concurrency.State<Element>) {
         self.state = state
         self.commonInit(queue: queue)
     }
     
-    public init(on queue: DispatchQueue = .task) {
+    public init(in queue: DispatchQueue = .task) {
         self.commonInit(queue: queue)
     }
     
@@ -77,7 +77,7 @@ public class Task<T>: Taskable {
     
     private func commonInit() { }
     
-    private func commonInit(on queue: DispatchQueue,
+    private func commonInit(in queue: DispatchQueue,
                             delay: (() -> DispatchTime)?,
                             _ action: @escaping (Task<Element>) -> Void) {
         self.commonInit()
@@ -89,7 +89,7 @@ public class Task<T>: Taskable {
         self.start()
     }
     
-    private func commonInit(on queue: DispatchQueue,
+    private func commonInit(in queue: DispatchQueue,
                             delay: (() -> DispatchTime)?,
                             _ action: @autoclosure @escaping () throws -> Element) {
         self.commonInit()
@@ -121,7 +121,7 @@ public class Task<T>: Taskable {
         self.updateState(to: self.state)
     }
     
-    fileprivate func updateState(to state: State<Element>) {
+    fileprivate func updateState(to state: Concurrency.State<Element>) {
         (self.options.start?.queue ?? .task).async {
             self.condition.mutex.lock()
             defer {
