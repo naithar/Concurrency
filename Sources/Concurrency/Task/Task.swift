@@ -21,7 +21,7 @@ public class Task<T>: Taskable {
     
     public typealias Element = T
     
-    deinit { print("deinit") }
+    deinit { }
     
     public private(set) var id = TaskIDGenerator.next()
     
