@@ -27,7 +27,7 @@ public extension Task {
 
 public func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     let newTask = Task<[T]>()
-    var (total, count) = (tasks.count, 0)
+    var (total, count, errored) = (tasks.count, 0, false)
     
     guard tasks.count > 0 else {
         newTask.send([])
@@ -37,6 +37,7 @@ public func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     for task in tasks {
         task.done { value in
                 DispatchQueue.barrier.sync {
+                    guard !errored else { return }
                     count += 1
                     if total == count {
                         newTask.send(tasks.flatMap { $0.state.result?.value })
@@ -45,6 +46,7 @@ public func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
             }
             .catch { error in
                 DispatchQueue.barrier.sync {
+                    errored = true
                     newTask.throw(error)
                 }
         }

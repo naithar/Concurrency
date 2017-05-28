@@ -36,10 +36,10 @@ public struct Options<Element> {
     var always: AlwaysHandler?
     
     mutating func clear() {
-        self.done = nil
+        self.done?.clear()
         self.recover = nil
-        self.error = nil
-        self.always = nil
+        self.error?.clear()
+        self.always?.clear()
     }
 }
 

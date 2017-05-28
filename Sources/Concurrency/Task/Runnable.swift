@@ -9,21 +9,26 @@
 import Dispatch
 
 public struct Runnable<T> {
-    var queue: DispatchQueue
-    var delay: (() -> DispatchTime)?
-    var action: (T) -> Void
+    private(set) var queue: DispatchQueue
+    private(set) var delay: (() -> DispatchTime)?
+    private(set) var action: ((T) -> Void)?
     
     func perform(with value: T) {
         if let delay = self.delay {
             self.queue
                 .asyncAfter(deadline: delay()) {
-                    self.action(value)
+                    self.action?(value)
             }
         } else {
             self.queue
                 .async {
-                    self.action(value)
+                    self.action?(value)
             }
         }
+    }
+    
+    mutating func clear() {
+        self.delay = nil
+        self.action = nil
     }
 }
