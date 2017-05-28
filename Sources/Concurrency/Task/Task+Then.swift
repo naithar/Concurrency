@@ -87,7 +87,7 @@ public extension Task {
     }
 }
 
-public extension Task where Element: Taskable {
+public extension Task where Element: _Taskable {
     
     public typealias TaskElement = Element.Element
     
@@ -96,7 +96,7 @@ public extension Task where Element: Taskable {
                         in queue: DispatchQueue,
                         delay: (() -> DispatchTime)?) {
         
-        func unwrap<T: Taskable>(from task: T) {
+        func unwrap<T: _Taskable>(from task: T) {
             guard let task = task as? Task<TaskElement> else {
                 newTask.throw(TaskError.unwrapError)
                 return

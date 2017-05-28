@@ -10,14 +10,14 @@
 
 fileprivate let TaskIDGenerator = IDGenerator(key: "task.id")
 
-public protocol Taskable {
+public protocol _Taskable {
     
     associatedtype Element
 }
 
 public let yield: Void = { return }()
 
-public class Task<T>: Taskable {
+public class Task<T>: _Taskable {
     
     public typealias Element = T
     
