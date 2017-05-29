@@ -22,13 +22,13 @@ public struct TaskState: OptionSet {
 }
 
 public extension Task {
+
     
     private func observe<Result>(on state: TaskState,
                          in queue: DispatchQueue,
                          delay: (() -> DispatchTime)?,
                          task: Task<Result>,
                          with action: @escaping (Element) throws -> Result) {
-        
         
         let handler = Observer<Element>
             .Handler(
@@ -41,6 +41,7 @@ public extension Task {
                             let value = try action(value)
                             task.send(value)
                         } catch {
+                            guard state.contains(.fail) else { return }
                             task.throw(error)
                         }
                     case .error(let error):
@@ -54,6 +55,7 @@ public extension Task {
         }
         self.update()
     }
+    
     
     @discardableResult
     public func then<Result>(on state: TaskState = .any,
