@@ -114,12 +114,22 @@ public extension Task where Element: _Taskable {
         }
         
         if let delay = delay {
-            self.then(in: queue, delay: delay()) { actualTask in
-                unwrap(from: actualTask)
+            self.always(in: queue, delay: delay()) { result in
+                switch result {
+                case .some(let task):
+                    unwrap(from: task)
+                case .error(let error):
+                    newTask.throw(error)
+                }
             }
         } else {
-            self.then(in: queue) { actualTask in
-                unwrap(from: actualTask)
+            self.always(in: queue) { result in
+                switch result {
+                case .some(let task):
+                    unwrap(from: task)
+                case .error(let error):
+                    newTask.throw(error)
+                }
             }
         }
     }
