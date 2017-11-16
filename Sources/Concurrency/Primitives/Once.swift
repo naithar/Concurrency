@@ -18,7 +18,7 @@ public class DispatchOnce {
         self.isFinished = false
     }
     
-    public func perform(_ action: @autoclosure (Void) -> Void) {
+    public func perform(_ action: @autoclosure () -> Void) {
         self.mutex.lock()
         defer { self.mutex.unlock() }
         
