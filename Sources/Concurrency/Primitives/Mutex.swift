@@ -22,7 +22,7 @@ public class DispatchMutex {
     }
     
     @discardableResult
-    public func `in`<T>(_ closure: (Void) -> T) -> T {
+    public func `in`<T>(_ closure: () -> T) -> T {
         self.lock()
         defer { self.unlock() }
         return closure()
