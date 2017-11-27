@@ -1,173 +1,279 @@
-//
-//  Task.swift
-//  SwiftAsync
-//
-//  Created by Sergey Minakov on 05.01.17.
-//
+////
+////  Task+Options.swift
+////  Concurrency
+////
+////  Created by Sergey Minakov on 15.05.17.
+////
+////
 //
 
-@_exported import Dispatch
 
-fileprivate let TaskIDGenerator = IDGenerator(key: "task.id")
+import Foundation
+import Dispatch
 
-public protocol _Taskable {
+public struct State: OptionSet {
     
-    associatedtype Element
+    public private(set) var rawValue: Int
+    
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
+    
+    static let success = State(rawValue: 1 << 1)
+    static let failure = State(rawValue: 1 << 2)
+    
+    static let all: State = [.success, .failure]
 }
 
-public let yield: Void = { return }()
+public enum TaskState<Element> {
+    
+    enum Error: Swift.Error {
+        case timeout
+    }
+    
+    case ready
+    case success(Element)
+    case failure(Swift.Error)
+    case timeout
+    
+    var result: TaskResult<Element>? {
+        switch self {
+        case .ready:
+            return nil
+        case .success(let el):
+            return .success(el)
+        case .failure(let er):
+            return .failure(er)
+        case .timeout:
+            return .failure(Error.timeout)
+        }
+    }
+}
 
-public class Task<T>: _Taskable {
+
+public enum TaskResult<Element> {
+    
+    case success(Element)
+    case failure(Swift.Error)
+    
+    var value: Element? {
+        switch self {
+        case .success(let el): return el
+        default: return nil
+        }
+    }
+    
+    var isError: Bool {
+        switch self {
+        case .success: return false
+        case .failure: return true
+        }
+    }
+}
+
+public typealias TaskClosure<Element> = (TaskResult<Element>) -> Void
+public struct TaskAction<Element> {
+    
+    let callback: TaskClosure<Element>
+}
+
+public let yield = ()
+
+public protocol TaskProtcol {
+    
+    associatedtype Element
+    
+    var state: TaskState<Element> { get }
+    var result: TaskResult<Element>? { get }
+    
+    //    func then() -> Self
+    //    func `catch`() -> Self
+    //
+    //    func `do`() -> Self
+    //    func always() -> Self
+    //
+    //    func timeout() -> Self
+    
+    func add(action: @escaping TaskClosure<Element>) -> Self
+    
+    func set(state: TaskState<Element>)
+}
+
+public class Task<T>: TaskProtcol {
+    
     
     public typealias Element = T
     
-    deinit { }
-    
-    public private(set) var id = TaskIDGenerator.next()
-    
-    public private(set) var state = Concurrency.State<Element>.ready
-    
-    internal var condition = DispatchCondition()
-    
-    internal var observer = Observer<Element>()
-    internal lazy var options = Options<Element>()
-    
-    public init(in queue: DispatchQueue = .task,
-                _ action: @escaping (Task<Element>) -> Void) {
-        self.commonInit(in: queue, delay: nil, action)
+    public var state: TaskState<Element> = .ready
+    public var result: TaskResult<Element>? {
+        return self.state.result
     }
     
-    public init(in queue: DispatchQueue = .task,
-                delay: @autoclosure @escaping () -> DispatchTime,
-                _ action: @escaping (Task<Element>) -> Void) {
-        self.commonInit(in: queue, delay: delay, action)
+    let lock = NSRecursiveLock()
+    
+    var actions = [TaskAction<Element>]()
+    
+    public func add(action: @escaping TaskClosure<Element>) -> Self {
+//        print("adding")
+        self.lock.lock()
+        if let result = result {
+//            print("doing")
+            self.lock.unlock()
+            action(result)
+        } else {
+            self.lock.unlock()
+//            print("adding---")
+            self.actions.append(TaskAction(callback: action))
+        }
+        
+        return self
     }
     
-    public init(in queue: DispatchQueue = .task,
-                value action: @autoclosure @escaping () throws -> Element) {
-        self.commonInit(in: queue, delay: nil, action)
+    init() {
+        
     }
     
-    public init(in queue: DispatchQueue = .task,
-                delay: @autoclosure @escaping () -> DispatchTime,
-                value action: @autoclosure @escaping () throws -> Element) {
-        self.commonInit(in: queue, delay: delay, action)
+    public init(in queue: DispatchQueue? = nil, value: Element) {
+        
     }
     
-    public init(in queue: DispatchQueue = .task,
-                state: Concurrency.State<Element>) {
+    public init(in queue: DispatchQueue? = nil) {
+        
+    }
+    public init(in queue: DispatchQueue? = nil, action: @escaping (Task<Element>) -> Void) {
+        (queue ?? taskQueue).async {
+            action(self)
+        }
+    }
+    
+    public init(state: TaskState<Element>) {
         self.state = state
-        self.commonInit(queue: queue)
     }
     
-    public init(in queue: DispatchQueue = .task) {
-        self.commonInit(queue: queue)
-    }
-    
-    
-    private func commonInit(queue: DispatchQueue) {
-        self.commonInit()
-        self.options.start = Options<Element>
-            .StartHandler(queue: queue,
-                          delay: nil,
-                          action: { _ in })
+    public func set(state: TaskState<Element>) {
+//        print("about to set")
         
-        self.start()
-    }
-    
-    private func commonInit() { }
-    
-    private func commonInit(in queue: DispatchQueue,
-                            delay: (() -> DispatchTime)?,
-                            _ action: @escaping (Task<Element>) -> Void) {
-        self.commonInit()
-        self.options.start = Options<Element>.StartHandler(
-            queue: queue,
-            delay: delay,
-            action: action)
+        self.lock.lock()
+        guard case .ready = self.state else { return }
         
-        self.start()
+//        print("doing to set")
+        
+        self.state = state
+        self.lock.unlock()
+        
+        self.perform()
     }
     
-    private func commonInit(in queue: DispatchQueue,
-                            delay: (() -> DispatchTime)?,
-                            _ action: @autoclosure @escaping () throws -> Element) {
-        self.commonInit()
-        self.options.start = Options<Element>.StartHandler(
-            queue: queue,
-            delay: delay) { task in
-                do {
-                    let value = try action()
-                    task.send(value)
-                } catch {
-                    task.throw(error)
-                }
+    func perform() {
+//        print("about to perform")
+        guard let result = self.result else { return }
+        
+//        print("performing")
+        for action in self.actions {
+            action.callback(result)
         }
         
-        self.start()
-    }
-    
-    private func start() {
-        guard case .ready = self.state else {
-            self.updateState(to: self.state)
-            return
-        }
-        self.options.start?.perform(with: self)
-    }
-    
-    internal func update() {
-        if case .ready = self.state { return }
-        
-        self.updateState(to: self.state)
-    }
-    
-    fileprivate func updateState(to state: Concurrency.State<Element>) {
-        (self.options.start?.queue ?? .task).async {
-            self.condition.mutex.lock()
-            defer {
-                self.condition.broadcast()
-                self.condition.mutex.unlock()
-            }
-            
-            self.state = state
-            guard var result = self.state.result else {
-                return
-            }
-            
-            defer {
-                self.options.clear()
-            }
-            
-            switch result {
-            case .some(let value):
-                self.options.done?.perform(with: value)
-            case .error(let error):
-                self.options.error?.perform(with: error)
-                if let newState = self.options.recover(from: error, at: self),
-                    let newResult = newState.result {
-                    self.state = newState
-                    result = newResult
-                }
-            }
-            
-            self.options.always?.perform(with: result)
-            
-            self.observer.fire(with: result) {
-                self.observer.clear()
-            }
-        }
+        self.actions = []
     }
 }
 
+let taskQueue = DispatchQueue.init(label: "label", attributes: .concurrent)
+
 public extension Task {
     
-    public func send(_ value: Element) {
-        self.updateState(to: .finished(value))
+    @discardableResult
+    func perform(in queue: DispatchQueue? = nil, on state: State = .all, callback: @escaping (TaskResult<Element>) -> ()) -> Self {
+        return self.add { result in
+            (queue ?? taskQueue).async {
+                if state == .all {
+                    callback(result)
+                } else if state == .failure && result.isError {
+                    callback(result)
+                } else if state == .success && !result.isError {
+                    callback(result)
+                }
+            }
+        }
     }
     
-    public func `throw`(_ error: Swift.Error) {
-        self.updateState(to: .error(error))
+    func then<U>(in queue: DispatchQueue? = nil,
+                 on state: State = .all,
+                 callback: @escaping (Element) throws -> (U)) -> Task<U> {
+        let task = Task<U>.init()
+
+        self.perform(in: queue, on: state) { result in
+            switch result {
+            case .success(let element):
+                do {
+                    let result = try callback(element)
+                    task.send(result)
+                } catch {
+                    task.throw(error)
+                }
+            case .failure(let error):
+                task.throw(error)
+            }
+        }
+        
+        return task
+    }
+    
+    func send(_ element: Element) {
+        self.set(state: .success(element))
+    }
+    
+    func `throw`(_ error: Swift.Error) {
+        self.set(state: .failure(error))
+    }
+    
+    func `catch`(in queue: DispatchQueue? = nil, callback: @escaping (Swift.Error) -> Void) -> Self {
+        return self.perform(in: queue, on: .failure) { result in
+            switch result {
+            case .failure(let error):
+                callback(error)
+            default: return
+            }
+        }
+    }
+    
+    func done(in queue: DispatchQueue? = nil,
+              callback: @escaping (Element) -> Void) -> Self {
+        return self.perform(in: queue, on: .success) { result in
+            guard let value = result.value else { return }
+            callback(value)
+        }
+    }
+    
+    func always(in queue: DispatchQueue? = nil,
+                callback: @escaping (TaskResult<Element>) -> Void) -> Self {
+        return self.perform(in: queue, callback: callback)
+    }
+    
+//    func timeout() -> Self {
+//
+//    }
+    
+}
+
+public extension Task where T: TaskProtcol {
+    
+    typealias UnderlyingTaskType = T.Element
+    
+    func unwrap(in queue: DispatchQueue? = nil) -> Task<UnderlyingTaskType> {
+        let unwrappedTask = Task<UnderlyingTaskType>.init()
+        
+        self.perform(in: queue) { result in
+            switch result {
+            case .success(let task):
+                unwrappedTask.set(state: task.state)
+            case .failure(let error):
+                unwrappedTask.throw(error)
+            }
+        }
+        
+        return unwrappedTask
     }
 }
+
 
 
