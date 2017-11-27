@@ -121,9 +121,9 @@ public class Task<T>: TaskProtcol {
             self.lock.unlock()
             action(result)
         } else {
-            self.lock.unlock()
 //            print("adding---")
             self.actions.append(TaskAction(callback: action))
+            self.lock.unlock()
         }
         
         return self
@@ -159,9 +159,10 @@ public class Task<T>: TaskProtcol {
 //        print("doing to set")
         
         self.state = state
-        self.lock.unlock()
+        
         
         self.perform()
+        self.lock.unlock()
     }
     
     func perform() {
@@ -175,6 +176,8 @@ public class Task<T>: TaskProtcol {
         
         self.actions = []
     }
+    
+    fileprivate let performLock = NSRecursiveLock()
 }
 
 let taskQueue = DispatchQueue.init(label: "label", attributes: .concurrent)
@@ -184,6 +187,7 @@ public extension Task {
     @discardableResult
     func perform(in queue: DispatchQueue? = nil, on state: State = .all, callback: @escaping (TaskResult<Element>) -> ()) -> Self {
         return self.add { result in
+            self.performLock.lock()
             (queue ?? taskQueue).async {
                 if state == .all {
                     callback(result)
@@ -192,6 +196,7 @@ public extension Task {
                 } else if state == .success && !result.isError {
                     callback(result)
                 }
+                self.performLock.unlock()
             }
         }
     }
