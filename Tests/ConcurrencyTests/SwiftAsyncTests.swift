@@ -115,7 +115,7 @@ class ConcurrencyTests: XCTestCase {
         let expectation = self.expectation(description: "expectation")
         var value = 0
         
-        Task<Int>(state: .finished(10))
+        Task<Int>(state: .success(10))
             .done { value = $0 * 2 }
             .always { _ in expectation.fulfill() }
         
@@ -191,6 +191,7 @@ class ConcurrencyTests: XCTestCase {
         }
     }
     
+    // TODO: hangs
     func testDelay() {
         let expectation = self.expectation(description: "expectation")
         var value = 0
@@ -280,8 +281,8 @@ class ConcurrencyTests: XCTestCase {
             XCTFail("should throw")
         } catch {
             switch error {
-            case let error as TaskError where error == .timeout:
-                XCTAssertTrue(true)
+//            case let error as TaskError where error == .timeout:
+//                XCTAssertTrue(true)
             default:
                 XCTFail("wrong error")
             }
@@ -389,7 +390,7 @@ class ConcurrencyTests: XCTestCase {
         task.then(on: .success) { _ in foo("success") }
             .always { _ in e.fulfill() }
         
-        task.then(on: .fail) { _ in foo("fail") }
+        task.then(on: .failure) { _ in foo("fail") }
             .always { _ in e.fulfill() }
         
         task.send(10)
@@ -405,7 +406,7 @@ class ConcurrencyTests: XCTestCase {
         task.then(on: .success) { _ in foo("success") }
             .always { _ in e.fulfill() }
         
-        task.then(on: .fail) { $0 }
+        task.then(on: .failure) { $0 }
             .catch { _ in foo("fail") }
             .always { _ in e.fulfill() }
         
