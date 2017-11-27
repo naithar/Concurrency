@@ -13,7 +13,7 @@ import Foundation
 
 extension DispatchQueue {
     
-    static let taskQueue = DispatchQueue(label: "concurrency.task.queue")
+    static let taskQueue = DispatchQueue(label: "concurrency.task.queue", attributes: .concurrent)
     
     static func performTask(in queue: DispatchQueue?, action: @escaping () -> Void) {
         (queue ?? .taskQueue).async {
