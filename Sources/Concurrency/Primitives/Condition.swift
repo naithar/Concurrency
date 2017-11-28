@@ -55,8 +55,25 @@ public class DispatchCondition {
         ts.tv_sec += ts.tv_nsec / 1000000000
         ts.tv_nsec %= 1000000000
         
-        return pthread_cond_timedwait(&self.condition, &self.mutex.mutex, &ts) == 0
+        let result = pthread_cond_timedwait(&self.condition, &self.mutex.mutex, &ts)
+        return result == 0
     }
+    
+    public func lock() {
+        self.mutex.lock()
+    }
+    
+    public func unlock() {
+        self.broadcast()
+        self.mutex.unlock()
+    }
+    
+    public func `in`<U>(_ action: () throws -> U) rethrows -> U {
+        self.lock()
+        defer { self.unlock() }
+        return try action()
+    }
+    
     
     @discardableResult
     public func signal() -> Bool {

@@ -11,14 +11,57 @@
 import Foundation
 @_exported import Dispatch
 
+public class IDGenerator {
+
+    public typealias ID = String
+
+    private var key: String
+    private var index = 0
+    private var mutex = DispatchMutex()
+
+    internal init(key: String) {
+        self.key = key
+    }
+
+    public func next() -> ID {
+        self.mutex.lock()
+        defer { self.mutex.unlock() }
+        let id = "\(self.key)-\(self.index)"
+        if self.index >= Int.max {
+            self.index = 0
+            self.key += "_"
+        } else {
+            self.index += 1
+        }
+        return "\(self.key)\(self.index)"
+    }
+}
+
+let taskGenId = IDGenerator(key: "task-")
+
 extension DispatchQueue {
     
     static let taskQueue = DispatchQueue(label: "concurrency.task.queue", attributes: .concurrent)
     
-    static func performTask(in queue: DispatchQueue?, action: @escaping () -> Void) {
-        (queue ?? .taskQueue).async {
-            print("perform")
-            action()
+    static let barrier = DispatchQueue(label: "concurrency.task.queue.barrier", attributes: [.concurrent])
+    
+    static func performTask(in queue: DispatchQueue?,
+                            delay: (() -> DispatchTime)? = nil,
+                            action: @escaping () -> Void) {
+        if let delay = delay {
+            let value = delay()
+            //            let time = DispatchTime.now()
+            
+            //
+            //            //print(value)
+            //            //print(time)
+            (queue ?? .taskQueue).asyncAfter(deadline: value) {
+                action()
+            }
+        } else {
+            (queue ?? .taskQueue).async {
+                action()
+            }
         }
     }
 }
@@ -41,6 +84,8 @@ public enum TaskState<Element> {
     
     enum Error: Swift.Error {
         case timeout
+        case didNotStart
+        case convertationError
     }
     
     case ready
@@ -100,18 +145,11 @@ public protocol TaskProtocol {
     func set(state: TaskState<Element>)
 }
 
-extension NSRecursiveLock {
-    
-    func `in`(_ action: () -> Void) {
-        self.lock()
-        defer { self.unlock() }
-        action()
-    }
-}
-
 public class Task<T>: TaskProtocol {
     
     public typealias Element = T
+    
+    let id = taskGenId.next()
     
     public var state: TaskState<Element> = .ready
     public var result: TaskResult<Element>? {
@@ -119,29 +157,26 @@ public class Task<T>: TaskProtocol {
     }
     
     deinit {
-        print("task deinit")
+        ////print("task deinit")
     }
     
-    
-    let locks = (
-        actions: NSRecursiveLock(),
-        perform: NSRecursiveLock()
+    var conditions = (
+        set: DispatchCondition(),
+        perform: DispatchCondition()
     )
     
     var actions = [TaskAction<Element>]()
     
     public func add(action: @escaping TaskClosure<Element>) -> Self {
-        self.locks.actions.in {
+        return self.conditions.set.in {
             if let result = result {
-                self.locks.actions.unlock()
                 action(result)
             } else {
                 self.actions.append(TaskAction(callback: action))
-                self.locks.actions.unlock()
             }
+            
+            return self
         }
-        
-        return self
     }
     
     public init() { }
@@ -185,10 +220,23 @@ public class Task<T>: TaskProtocol {
     }
     
     public func set(state: TaskState<Element>) {
-        self.locks.actions.in {
-            guard case .ready = self.state else { return }
-            self.state = state
-            self.perform()
+        self.set(state: state, force: false)
+    }
+    
+    public func set(state: TaskState<Element>, force: Bool) {
+        self.conditions.set.in {
+            if force {
+                self.state = state
+                
+                //print("\(self.id) \(self.state) \(self.actions)")
+                self.perform()
+            } else if case .ready = self.state {
+                self.state = state
+                //print("\(self.id) \(self.state)  \(self.actions)")
+                self.perform()
+            } else {
+                //print("\(self.id) none")
+            }
         }
     }
     
@@ -209,12 +257,13 @@ public extension Task {
     @discardableResult
     fileprivate func perform(in queue: DispatchQueue? = nil,
                              on state: State = .all,
-                             delay: DispatchTime? = nil,
+                             delay:  (() -> DispatchTime)? = nil,
                              callback: @escaping (TaskResult<Element>) -> ()) -> Self {
         return self.add { result in
-            self.locks.perform.lock()
-            print("locks")
-            DispatchQueue.performTask(in: queue) {
+            
+            self.conditions.perform.lock()
+            ////print("locks")
+            DispatchQueue.performTask(in: queue, delay: delay) {
                 if state == .all {
                     callback(result)
                 } else if state == .failure && result.isError {
@@ -222,20 +271,22 @@ public extension Task {
                 } else if state == .success && !result.isError {
                     callback(result)
                 }
-                self.locks.perform.unlock()
-                print("unlocks")
+                
+                //print("broadcasting \(self.id) perform with \(address(of: &self.conditions.perform))")
+                self.conditions.perform.unlock()
+                ////print("unlocks")
             }
         }
     }
     
     public func then<U>(in queue: DispatchQueue? = nil,
                         on state: State = .all,
-                        delay: DispatchTime? = nil,
+                        delay: (() -> DispatchTime)? = nil,
                         callback: @escaping (Element) throws -> (U)) -> Task<U> {
-        print("then")
         let task = Task<U>.init()
         
-        self.perform(in: queue, on: state) { result in
+        self.perform(in: queue, on: state, delay: delay) { result in
+            //print(delay)
             switch result {
             case .success(let element):
                 do {
@@ -260,6 +311,7 @@ public extension Task {
         self.set(state: .failure(error))
     }
     
+    @discardableResult
     public func `catch`(in queue: DispatchQueue? = nil, callback: @escaping (Swift.Error) -> Void) -> Self {
         return self.perform(in: queue, on: .failure) { result in
             switch result {
@@ -272,40 +324,91 @@ public extension Task {
     
     public func done(in queue: DispatchQueue? = nil,
                      callback: @escaping (Element) -> Void) -> Self {
-        print("done")
+        ////print("done")
         return self.perform(in: queue, on: .success) { result in
             guard let value = result.value else { return }
             callback(value)
         }
     }
     
+    @discardableResult
     public func always(in queue: DispatchQueue? = nil,
                        callback: @escaping (TaskResult<Element>) -> Void) -> Self {
-        print("always")
+        ////print("always")
         return self.perform(in: queue, callback: callback)
     }
     
-    public func timeout(after: DispatchTime) -> Self {
+    public func timeout(after: (() -> DispatchTime)) -> Self {
         return self
     }
     
-    public func recover(callback: @escaping (Swift.Error) throws -> Element) -> Self {
-        return self
+    public func recover(callback: @escaping (Swift.Error) throws -> Element) -> Task<Element> {
+        let task = Task<Element>()
+        
+        self.perform { result in
+            switch result {
+            case .success(let element):
+                task.set(state: .success(element))
+            case .failure(let error):
+                do {
+                    let result = try callback(error)
+                    task.set(state: .success(result))
+                } catch {
+                    task.set(state: .failure(error))
+                }
+            }
+        }
+        
+        return task
     }
     
-    public func wait() throws -> Element {
-        throw TaskState<Element>.Error.timeout
-    }
     
-    public func wait(for time: DispatchTime? = nil) throws -> Element {
-        throw TaskState<Element>.Error.timeout
-    }
 }
 
 public extension Task {
     
-    public func `as`<T>(_ type: T.Type) -> Task<T> {
-        return Task<T>.init()
+    private func shouldWait() -> Bool {
+        if case .ready = self.state {
+            return true
+        }
+        
+        return false
+    }
+    
+    private func receiveElement() throws -> Element {
+        switch self.state {
+        case .success(let element):
+            return element
+        case .failure(let error):
+            throw error
+        case .timeout:
+            throw TaskState<Element>.Error.timeout
+        case .ready:
+            throw TaskState<Element>.Error.didNotStart
+        }
+    }
+    
+    public func wait() throws -> Element {
+        return try self.conditions.set.in {
+            
+            while self.shouldWait() {
+                self.conditions.set.wait()
+            }
+            
+            return try self.receiveElement()
+        }
+    }
+    
+    public func wait(for time: (() -> DispatchTime)) throws -> Element {
+        return try self.conditions.set.in {
+            
+            let value = time()
+            
+            while self.shouldWait() && self.conditions.set.wait(timeout: value) { }
+            
+            //print("finishing wait at \(DispatchTime.now())")
+            return try self.receiveElement()
+        }
     }
 }
 
@@ -320,61 +423,86 @@ public extension Task where Element: Sequence {
     
     public typealias ArrayElement = Element.Iterator.Element
     
-    public func map<U>(callback: (ArrayElement) -> U) -> Task<[U]> {
-        return Task<[U]>()
+    public func map<U>(_ transform: @escaping (ArrayElement) throws -> U) -> Task<[U]> {
+        return self.then { array in
+            return try array.map { try transform($0) }
+        }
     }
     
-    public func filter(callback: (ArrayElement) -> Bool) -> Task<[ArrayElement]> {
-        return Task<[ArrayElement]>()
-    }
-    
-    public func flatMap<U>(callback: (ArrayElement) -> U?) -> Task<[U]> {
-        return Task<[U]>()
+    public func flatMap<U>(_ transform: @escaping (ArrayElement) throws -> U?) -> Task<[U]> {
+        return self.then { array in
+            return try array.flatMap { try transform($0) }
+        }
     }
     
     public func reduce<Result>(_ initial: Result,
                                _ transform: @escaping (Result, ArrayElement) throws -> Result) -> Task<Result> {
-        return Task<Result>.init()
+        return self.then { array in
+            return try array.reduce(initial, transform)
+        }
+        
     }
-
+    
+    public func filter(_ isIncluded: @escaping (ArrayElement) throws -> Bool) -> Task<[ArrayElement]> {
+        return self.then { array in
+            return try array.filter(isIncluded)
+        }
+    }
+    
 }
 
-public extension Sequence where Element: TaskProtocol {
+public extension Task {
     
-    typealias TaskElement = Element.Element
-    func combine() -> Task<[TaskElement]> {
-        return Task<[TaskElement]>()
+    public func `as`(_ type: Void.Type, _ convert: ((Element) -> T?)? = nil) -> Task<Void> {
+        return self.then { _ in () as Void }
+    }
+    
+    public func `as`<T>(_ type: T.Type, _ convert: ((Element) -> T?)? = nil) -> Task<T> {
+        return self.then {
+            guard let new = convert?($0) ?? $0 as? T else {
+                throw TaskState<Element>.Error.convertationError
+            }
+            
+            return new
+        }
     }
 }
 
 public func combine<T>(tasks: [Task<T>]) -> Task<[T]> {
     let newTask = Task<[T]>()
-//    var (total, count, errored) = (tasks.count, 0, false)
-//
-//    guard tasks.count > 0 else {
-//        newTask.send([])
-//        return newTask
-//    }
-//
-//    for task in tasks {
-//        task.done { value in
-//            DispatchQueue.barrier.sync {
-//                guard !errored else { return }
-//                count += 1
-//                if total == count {
-//                    newTask.send(tasks.flatMap { $0.state.result?.value })
-//                }
-//            }
-//            }
-//            .catch { error in
-//                DispatchQueue.barrier.sync {
-//                    errored = true
-//                    newTask.throw(error)
-//                }
-//        }
-//    }
-//
+    var (total, count, errored) = (tasks.count, 0, false)
+    
+    guard tasks.count > 0 else {
+        newTask.send([])
+        return newTask
+    }
+    
+    for task in tasks {
+        task.done { value in
+            DispatchQueue.barrier.sync {
+                guard !errored else { return }
+                count += 1
+                if total == count {
+                    newTask.send(tasks.flatMap { $0.state.result?.value })
+                }
+            }
+            }
+            .catch { error in
+                DispatchQueue.barrier.sync {
+                    errored = true
+                    newTask.throw(error)
+                }
+        }
+    }
+    
     return newTask
+}
+
+public extension Array where Element: TaskProtocol {
+    
+    public func combine() -> Task<[Element.Element]> {
+        return Concurrency.combine(tasks: self.flatMap { $0 as? Task<Element.Element> })
+    }
 }
 
 
