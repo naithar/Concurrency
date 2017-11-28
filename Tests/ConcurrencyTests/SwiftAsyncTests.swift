@@ -371,18 +371,16 @@ class ConcurrencyTests: XCTestCase {
     }
     
     func testUnwrap() {
-        
-        let yield: Void = { return }()
         let e = self.expectation(description: "e")
         var value = 0
         
-        Task<Void>(value: yield)
+        Task<Void>().finish()
             .then { _ in return Task<Int>(value: 10) }
             .then { $0.then { $0 * 2 } }
             .unwrap()
             .then { $0 + 5 }
             .then { value = $0 }
-            .always { _ in e.fulfill() }
+            .always(in: .global()) { _ in e.fulfill() }
         
         self.waitForExpectations(timeout: 5) { error in
             XCTAssertNil(error)

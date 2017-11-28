@@ -74,10 +74,10 @@ public struct State: OptionSet {
         self.rawValue = rawValue
     }
     
-    static let success = State(rawValue: 1 << 1)
-    static let failure = State(rawValue: 1 << 2)
+    public static let success = State(rawValue: 1 << 1)
+    public static let failure = State(rawValue: 1 << 2)
     
-    static let all: State = [.success, .failure]
+    public static let all: State = [.success, .failure]
 }
 
 public enum TaskState<Element> {
@@ -227,15 +227,10 @@ public class Task<T>: TaskProtocol {
         self.conditions.set.in {
             if force {
                 self.state = state
-                
-                //print("\(self.id) \(self.state) \(self.actions)")
                 self.perform()
             } else if case .ready = self.state {
                 self.state = state
-                //print("\(self.id) \(self.state)  \(self.actions)")
                 self.perform()
-            } else {
-                //print("\(self.id) none")
             }
         }
     }
@@ -279,6 +274,7 @@ public extension Task {
         }
     }
     
+    @discardableResult
     public func then<U>(in queue: DispatchQueue? = nil,
                         on state: State = .all,
                         delay: (() -> DispatchTime)? = nil,
@@ -301,14 +297,6 @@ public extension Task {
         }
         
         return task
-    }
-    
-    public func send(_ element: Element) {
-        self.set(state: .success(element))
-    }
-    
-    public func `throw`(_ error: Swift.Error) {
-        self.set(state: .failure(error))
     }
     
     @discardableResult
@@ -334,7 +322,6 @@ public extension Task {
     @discardableResult
     public func always(in queue: DispatchQueue? = nil,
                        callback: @escaping (TaskResult<Element>) -> Void) -> Self {
-        ////print("always")
         return self.perform(in: queue, callback: callback)
     }
     
@@ -363,6 +350,16 @@ public extension Task {
     }
     
     
+}
+
+public extension Task {
+    public func send(_ element: Element) {
+        self.set(state: .success(element))
+    }
+    
+    public func `throw`(_ error: Swift.Error) {
+        self.set(state: .failure(error))
+    }
 }
 
 public extension Task {
@@ -414,8 +411,10 @@ public extension Task {
 
 public extension Task where Element == Void {
     
-    public func finish() {
+    @discardableResult
+    public func finish() -> Self {
         self.set(state: .success(()))
+        return self
     }
 }
 
